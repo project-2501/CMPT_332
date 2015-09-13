@@ -12,6 +12,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "util_functions.h"
 
@@ -30,13 +32,15 @@ int main()
 {
 	char *c;
 	char *cmd = NULL;
-	size_t len = 0;
 
-	while(1)
+	rl_bind_key('\t', rl_abort); /* Disable auto-complete */
+
+	while(( cmd = readline("$osh> ")) != NULL)
 	{
-		printf("$osh> ");
-		getline(&cmd, &len, stdin);
-		cmd[strlen(cmd) -1] = '\0';
+		if(cmd[0] == 0)
+			continue;
+		else
+			add_history(cmd);
 
 		/* Test for presence of illegal characters */
 		if (( c = strpbrk(cmd, illegal_chars)) != 0) {

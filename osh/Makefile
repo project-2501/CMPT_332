@@ -9,7 +9,7 @@ OSH_INC_LIBS = lib/util_functions.a
 
 CFLAGS = -std=c99 -g -I${OSH_INC_DIRS} -pedantic -Wall -Wextra \
 		 -Wmissing-prototypes -Wno-sign-compare -Wno-unused-parameter \
-		 -D_GNU_SOURCE
+		 -D_GNU_SOURCE -lreadline
 
 LDLIBS = ${OSH_INC_LIBS}
 
