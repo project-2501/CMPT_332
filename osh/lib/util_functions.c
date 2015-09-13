@@ -2,6 +2,25 @@
 #include <string.h>
 #include "util_functions.h"
 
+char *trimwhitespace(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(isspace(*str)) str++;
+
+  if(*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && isspace(*end)) end--;
+
+  // Write new null terminator
+  *(end+1) = 0;
+  return str;
+}
+
 /* Compresses multiple whitespace to a single space */
 void compress_spaces(char *str)
 {
@@ -17,6 +36,7 @@ void compress_spaces(char *str)
         }
     }
     *dst = 0;
+	return;
 }
 
 /* Splits string by token and return char pointer array 

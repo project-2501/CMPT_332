@@ -9,6 +9,8 @@
 #ifndef UTIL_FUNCTIONS_H
 #define UTIL_FUNCTIONS_H
 
+char *trimwhitespace(char *str);
+
 void compress_spaces(char *str);
 
 int split(char *string, char *delim, char *tokens[]);

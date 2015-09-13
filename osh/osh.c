@@ -7,6 +7,7 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
@@ -23,28 +24,33 @@
 const char *illegal_chars = ">();:?,!@#$%^&*[]{}'+=~`";
 
 /* Function prototypes */
-int numChars(const char *str, const char *c);
-void execRedirCmd(char *cmd);
-void execPipeCmd(char *cmd);
-void execCmd(char *cmd);
+static void execRedirCmd(char *cmd);
+static void execPipeCmd(char *cmd);
+static void execCmd(char *cmd, char *file);
 
 int main()
 {
 	char *c;
 	char *cmd = NULL;
+	int redirCount = 0;
 
 	rl_bind_key('\t', rl_abort); /* Disable auto-complete */
 
 	while(( cmd = readline("$osh> ")) != NULL)
 	{
-		if(cmd[0] == 0)
-			continue;
-		else
+		if (cmd[0] == 0) 
+			continue; 
+		else 
 			add_history(cmd);
 
-		/* Test for presence of illegal characters */
+		/* Test for presence of illegal user input */
+		redirCount = num_chars(cmd, '<');
 		if (( c = strpbrk(cmd, illegal_chars)) != 0) {
 			fprintf(stderr, "Error: Invalid character '%c'\n", c[0]);
+			continue;
+		}
+		else if (redirCount > 1) {
+			fprintf(stderr, "Error: Too many redirects '<'\n");
 			continue;
 		}
 
@@ -52,32 +58,46 @@ int main()
 		if ( num_chars(cmd, '|') > 0 ) {
 			execPipeCmd(cmd);
 		}
-		else if ( num_chars(cmd, '<') > 0) {
+		else if ( redirCount > 0) {
 			execRedirCmd(cmd);
 		}
 		else {
-			execCmd(cmd);
+			execCmd(cmd, NULL);
 		}
 	}
 	exit(EXIT_SUCCESS);	
 }
 
 /* Executes a command that has file redirection */
-void execRedirCmd(char *cmd)
+static void
+execRedirCmd(char *cmd)
 {
-	//stub
+	int count;
+	char *tokens[3];
+	
+	compress_spaces(cmd);
+	count = split(cmd, "<", tokens);
+	tokens[count] = NULL;
+
+	tokens[1] = trimwhitespace(tokens[1]);
+	tokens[0] = trimwhitespace(tokens[0]);
+
+	execCmd(tokens[1], tokens[0]);
+	
 	return;
 }
 
 /* Executes a command that contains pipes */
-void execPipeCmd(char *cmd)
+static void
+execPipeCmd(char *cmd)
 {
 	//stub
 	return;
 }
 
 /* Executes a regular command */
-void execCmd(char *cmd)
+static void
+execCmd(char *cmd, char *file)
 {
     int count, status;
     char *tokens[MAX_TOKENS];
@@ -99,9 +119,21 @@ void execCmd(char *cmd)
 			exit(EXIT_FAILURE);
 		
 		case 0: /* Child */
-			execvp(tokens[0], tokens);
-			fprintf(stderr, "Error: %s\n", strerror(errno));
-			exit(EXIT_FAILURE);
+			if (file != NULL) /* Provide stdout redirection to file */
+			{
+				close(STDOUT_FILENO);
+				open(file, O_WRONLY | O_CREAT, 
+						S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+				execvp(tokens[0], tokens);
+				fprintf(stderr, "Error: %s\n", strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+			else if (file == NULL) /* Regular command execution */
+			{
+				execvp(tokens[0], tokens);
+				fprintf(stderr, "Error: %s\n", strerror(errno));
+				exit(EXIT_FAILURE);
+			}
 
 		default: /* Parent */
 			if (waitpid(childPid, &status, 0) == -1) {

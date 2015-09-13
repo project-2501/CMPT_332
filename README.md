@@ -1,8 +1,7 @@
-#CMPT 332: OPERATING SYSTEMS CONCEPTS
-Fall 2015
+##CMPT 332: OPERATING SYSTEMS CONCEPTS
 
-##Description
+###Description
 This is Taran and Kyle's repo for CMPT 332.
 
 ##Assignment 1
-*osh
+* osh
