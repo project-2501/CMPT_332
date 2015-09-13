@@ -13,6 +13,6 @@ void compress_spaces(char *str);
 
 int split(char *string, char *delim, char *tokens[]);
 
-
+int num_chars(const char *str, const char c);
 
 #endif

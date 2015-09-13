@@ -2,7 +2,7 @@
 #include <string.h>
 #include "util_functions.h"
 
-/* Utility function to compress multiple whitespace to a single space */
+/* Compresses multiple whitespace to a single space */
 void compress_spaces(char *str)
 {
     char *dst = str;
@@ -19,7 +19,8 @@ void compress_spaces(char *str)
     *dst = 0;
 }
 
-/* Utility function to split string by token and return char pointer array */
+/* Splits string by token and return char pointer array 
+ * Return: the number of tokens in the string */
 int split(char *string, char *delim, char *tokens[])
 {
     int count = 0;
@@ -35,3 +36,15 @@ int split(char *string, char *delim, char *tokens[])
     return count;
 }
 
+/* Counts number of occurences of char c in str 
+ * Return: the character count */
+int num_chars(const char *str, const char c)
+{
+	int count = 0;
+	for (int i = 0; str[i] != '\0'; i++)
+	{
+		if (str[i] == c)
+			count++;
+	}
+	return count;
+}
