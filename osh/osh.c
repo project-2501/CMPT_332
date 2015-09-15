@@ -38,7 +38,7 @@ int main()
 
 	while(( cmd = readline("$osh> ")) != NULL)
 	{
-		if (cmd[0] == 0) 
+		if (cmd[0] == 0) /* Ignore empty cmd's */
 			continue; 
 		else 
 			add_history(cmd);
@@ -75,13 +75,14 @@ execRedirCmd(char *cmd)
 	int count;
 	char *tokens[3];
 	
+	/* Parse and format cmd and file strings */
 	compress_spaces(cmd);
 	count = split(cmd, "<", tokens);
 	tokens[count] = NULL;
-
 	tokens[1] = trimwhitespace(tokens[1]);
 	tokens[0] = trimwhitespace(tokens[0]);
 
+	/* Execute the redirection command */
 	execCmd(tokens[1], tokens[0]);
 	
 	return;

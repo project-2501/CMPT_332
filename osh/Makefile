@@ -6,15 +6,16 @@
 # Directories to include in the build
 OSH_INC_DIRS = lib
 OSH_INC_LIBS = lib/util_functions.a
+LDLIBS = ${OSH_INC_LIBS}
 
+# Compiler flags
 CFLAGS = -std=c99 -g -I${OSH_INC_DIRS} -pedantic -Wall -Wextra \
 		 -Wmissing-prototypes -Wno-sign-compare -Wno-unused-parameter \
 		 -D_GNU_SOURCE -lreadline
 
-LDLIBS = ${OSH_INC_LIBS}
-
 RM = rm -f
 
+# List of executable files to be built
 EXE = osh
 
 all:

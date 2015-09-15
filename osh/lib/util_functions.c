@@ -61,7 +61,8 @@ int split(char *string, char *delim, char *tokens[])
 int num_chars(const char *str, const char c)
 {
 	int count = 0;
-	for (int i = 0; str[i] != '\0'; i++)
+	int i = 0;
+	for (i = 0; str[i] != '\0'; i++)
 	{
 		if (str[i] == c)
 			count++;
