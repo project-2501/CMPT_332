@@ -123,7 +123,7 @@ execCmd(char *cmd, char *file)
 			if (file != NULL) /* Provide stdout redirection to file */
 			{
 				close(STDOUT_FILENO);
-				open(file, O_WRONLY | O_CREAT, 
+				open(file, O_WRONLY | O_CREAT | O_TRUNC, 
 						S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 				execvp(tokens[0], tokens);
 				fprintf(stderr, "Error: %s\n", strerror(errno));
