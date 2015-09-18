@@ -2,6 +2,24 @@
 #include <string.h>
 #include "util_functions.h"
 
+/* Reverses the order of a char * array */
+/* NOTE: n is the length of str but has to include +1 for NULL terminator! */
+void reverse_array(char *str[], int n)
+{
+	char *c_str[n];
+
+	int i,j;
+	for (i = 0, j = n - 1; j > 0; i++, j--)
+		c_str[i] = str[j - 1];
+
+	for (i = 0; i < n-1; i++)
+		str[i] = strdup(c_str[i]);
+
+	str[n] = NULL;
+	return;
+}
+
+/* Trims whitespace off of the front and back of a string */
 char *trimwhitespace(char *str)
 {
   char *end;

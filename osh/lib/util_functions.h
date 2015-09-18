@@ -9,6 +9,8 @@
 #ifndef UTIL_FUNCTIONS_H
 #define UTIL_FUNCTIONS_H
 
+void reverse_array(char *str[], int n);
+
 char *trimwhitespace(char *str);
 
 void compress_spaces(char *str);

@@ -92,7 +92,90 @@ execRedirCmd(char *cmd)
 static void
 execPipeCmd(char *cmd)
 {
-	//stub
+	int num_cmds, num_pipes, status, i, j, q;
+	char *tokens[MAX_TOKENS];
+	pid_t childpid;
+
+	/* Format and tokenize the pipe command */
+	compress_spaces(cmd);
+	num_cmds = split(cmd, "|", tokens);
+	tokens[num_cmds] = NULL;
+	num_pipes = num_cmds - 1;
+
+	/* Create the pipe file descriptor array */
+	int pipefds[2*num_pipes];
+	for (i=0; i < num_pipes; i++) {
+		if ( pipe(pipefds + 2*i) < 0) {
+			fprintf(stderr, "Error: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	/* Reverse the order of the token elements to get 'odd' shell style */
+	reverse_array(tokens, num_cmds + 1);
+
+	i = 0; /* Index into tokens[] array */
+	j = 0; /* Index into pipefds[] array */
+	while(tokens[i])
+	{
+		switch(childpid = fork()) {
+			case -1: /* Error */
+				fprintf(stderr, "Error: %s\n", strerror(errno));
+				exit(EXIT_FAILURE);
+			
+			case 0: /* Child implements the pipe mill */
+
+				/* If this command is not the last one, redirect stdout */
+				if (i < num_pipes) {
+					if (num_chars(tokens[i], '<') > 0) {
+						fprintf(stderr, "Error: illegal redirection in '%s'\n", tokens[i]);
+						exit(EXIT_FAILURE);
+					}
+					if (dup2(pipefds[j + 1], 1) < 0) { 
+						fprintf(stderr, "Error: %s\n", strerror(errno));
+						exit(EXIT_FAILURE);
+					}
+				}
+
+				/* If this command is not the first, redirect stdin */
+				if (j != 0) {
+					if (dup2(pipefds[j - 2], 0) < 0) { 
+						fprintf(stderr, "Error: %s\n", strerror(errno));
+						exit(EXIT_FAILURE);
+					}
+				}
+
+				/* Close all of this childs pipefd handles */
+				for (q = 0; q < 2*num_pipes; q++)
+					close(pipefds[q]);
+
+				/* Execute the command - handle if final command has < */
+				tokens[i] = trimwhitespace(tokens[i]);
+				if ( (i == num_pipes) && (num_chars(tokens[i], '<') > 0) )
+					execRedirCmd(tokens[i]);
+				else
+					execCmd(tokens[i], NULL);
+				
+				/* This child can now exit */
+				exit(EXIT_SUCCESS);
+		}
+
+		/* Increment the indices */
+		i++; j = j + 2;
+	}
+
+	/* Close all of the parents pipefds */
+	for (i = 0; i < 2 * num_pipes; i++)
+		close(pipefds[i]);
+
+	/* Wait on all of the child processes forked */
+	for (i = 0; i < num_cmds; i++) {
+		if (wait(&status) == -1) {
+		fprintf(stderr, "Error in pipe: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+		}
+	}
+
 	return;
 }
 
@@ -138,7 +221,7 @@ execCmd(char *cmd, char *file)
 
 		default: /* Parent */
 			if (waitpid(childPid, &status, 0) == -1) {
-				fprintf(stderr, "Error: %s\n", strerror(errno));
+				fprintf(stderr, "Error in exec: %s\n", strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 	}
