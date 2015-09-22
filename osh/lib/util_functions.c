@@ -1,5 +1,7 @@
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "util_functions.h"
 
 /* Reverses the order of a char * array */
@@ -86,4 +88,29 @@ int num_chars(const char *str, const char c)
 			count++;
 	}
 	return count;
+}
+
+/* Duplicates every occurrence of char c in str */
+void dup_char(char *str, const char c)
+{
+	int count = num_chars(str, c);
+	int origSize = strlen(str);
+
+	char dupStr[origSize + count];
+	int size = origSize+count;
+	strcpy(dupStr, str);
+
+	int i = 0;
+	int j = 0;
+	
+	while(dupStr[i] != '\0'){
+		str[j] = dupStr[i];
+		if(dupStr[i] == c){
+			j++;
+			str[j] = dupStr[i];
+		}
+		i++;
+		j++;
+	}
+	str[j] = '\0';
 }

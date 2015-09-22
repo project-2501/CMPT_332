@@ -197,6 +197,9 @@ execCmd(char *cmd, char *file)
 		exit(EXIT_SUCCESS);
 	}
 
+	int pipefd[2];
+	pipe(pipefd);
+
 	switch(childPid = fork()) {
 		case -1: /* Error */
 			fprintf(stderr, "Error: %s\n", strerror(errno));
@@ -214,6 +217,10 @@ execCmd(char *cmd, char *file)
 			}
 			else if (file == NULL) /* Regular command execution */
 			{
+				close(pipefd[0]);	// close reading end
+				dup2(pipefd[1], 1);	// send stdout to the pipe
+				close(pipefd[1]);	// this descriptor is no longer needed
+
 				execvp(tokens[0], tokens);
 				fprintf(stderr, "Error: %s\n", strerror(errno));
 				exit(EXIT_FAILURE);
@@ -223,6 +230,29 @@ execCmd(char *cmd, char *file)
 			if (waitpid(childPid, &status, 0) == -1) {
 				fprintf(stderr, "Error in exec: %s\n", strerror(errno));
 				exit(EXIT_FAILURE);
+			}
+
+			// special odd shell letter duplicating for stdout
+			// NOTE: change so that only applies to the last command in a set of pipelined commands
+			if (file == NULL){
+				char buffer[1024];	// not sure how big this should be...
+				int i;
+				for(i = 0; i < 1024; i++){
+					buffer[i] = '\0';
+				}
+				close(pipefd[1]);	// close the write end of the pipe
+			
+				while(read(pipefd[0], buffer, sizeof(buffer)) != 0)
+				{
+					// duplicate 'c','m','p','t'
+					dup_char(buffer, 'c');
+					dup_char(buffer, 'm');
+					dup_char(buffer, 'p');
+					dup_char(buffer, 't');
+					fprintf(stdout, "%s", buffer);
+					//write(STDOUT_FILENO, buffer, sizeof(char)*1024);
+				}
+				close(pipefd[0]);
 			}
 	}
 	return;

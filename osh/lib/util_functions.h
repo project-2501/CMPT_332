@@ -19,4 +19,6 @@ int split(char *string, char *delim, char *tokens[]);
 
 int num_chars(const char *str, const char c);
 
+void dup_char(char *str, const char c);
+
 #endif
