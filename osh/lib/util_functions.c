@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+//#include <stdlib.h>
+//#include <stdio.h>
 #include "util_functions.h"
 
 /* Reverses the order of a char * array */
