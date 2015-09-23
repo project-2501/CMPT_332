@@ -20,13 +20,15 @@
 
 #define MAX_TOKENS 200   /* Max tokens allowed for single cmd */
 
+typedef enum { false, true } bool;
+
 /* Global data */
 const char *illegal_chars = ">();:?,!@#$%^&*[]{}'+=~`";
 
 /* Function prototypes */
 static void execRedirCmd(char *cmd);
 static void execPipeCmd(char *cmd);
-static void execCmd(char *cmd, char *file);
+static void execCmd(char *cmd, char *file, bool lastCmd);
 
 int main()
 {
@@ -62,7 +64,7 @@ int main()
 			execRedirCmd(cmd);
 		}
 		else {
-			execCmd(cmd, NULL);
+			execCmd(cmd, NULL, true);
 		}
 	}
 	exit(EXIT_SUCCESS);	
@@ -83,7 +85,7 @@ execRedirCmd(char *cmd)
 	tokens[0] = trimwhitespace(tokens[0]);
 
 	/* Execute the redirection command */
-	execCmd(tokens[1], tokens[0]);
+	execCmd(tokens[1], tokens[0], true);
 	
 	return;
 }
@@ -154,7 +156,12 @@ execPipeCmd(char *cmd)
 				if ( (i == num_pipes) && (num_chars(tokens[i], '<') > 0) )
 					execRedirCmd(tokens[i]);
 				else
-					execCmd(tokens[i], NULL);
+					if(i < num_pipes){
+						execCmd(tokens[i], NULL, false);
+					}
+					else {
+						execCmd(tokens[i], NULL, true);
+					}
 				
 				/* This child can now exit */
 				exit(EXIT_SUCCESS);
@@ -181,7 +188,7 @@ execPipeCmd(char *cmd)
 
 /* Executes a regular command */
 static void
-execCmd(char *cmd, char *file)
+execCmd(char *cmd, char *file, bool lastCmd)
 {
     int count, status;
     char *tokens[MAX_TOKENS];
@@ -215,8 +222,13 @@ execCmd(char *cmd, char *file)
 				fprintf(stderr, "Error: %s\n", strerror(errno));
 				exit(EXIT_FAILURE);
 			}
-			else if (file == NULL) /* Regular command execution */
+			else if (file == NULL && !lastCmd) /* Regular command execution */
 			{
+				execvp(tokens[0], tokens);
+				fprintf(stderr, "Error: %s\n", strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+			else if (file == NULL && lastCmd){			
 				close(pipefd[0]);	// close reading end
 				dup2(pipefd[1], 1);	// send stdout to the pipe
 				close(pipefd[1]);	// this descriptor is no longer needed
@@ -233,24 +245,30 @@ execCmd(char *cmd, char *file)
 			}
 
 			// special odd shell letter duplicating for stdout
-			// NOTE: change so that only applies to the last command in a set of pipelined commands
-			if (file == NULL){
-				char buffer[1024];	// not sure how big this should be...
+			if (file == NULL && lastCmd){
+				char buffer[2];	
 				int i;
-				for(i = 0; i < 1024; i++){
+				for(i = 0; i < 2; i++){
 					buffer[i] = '\0';
 				}
 				close(pipefd[1]);	// close the write end of the pipe
 			
-				while(read(pipefd[0], buffer, sizeof(buffer)) != 0)
+				while(read(pipefd[0], buffer, 1) != 0)	
 				{
 					// duplicate 'c','m','p','t'
-					dup_char(buffer, 'c');
-					dup_char(buffer, 'm');
-					dup_char(buffer, 'p');
-					dup_char(buffer, 't');
 					fprintf(stdout, "%s", buffer);
-					//write(STDOUT_FILENO, buffer, sizeof(char)*1024);
+					if(strcmp(buffer, "c") == 0){
+						fprintf(stdout, "c");
+					}
+					else if(strcmp(buffer, "m") == 0){
+						fprintf(stdout, "m");
+					}
+					else if(strcmp(buffer, "p") == 0){
+						fprintf(stdout, "p");
+					}
+					else if(strcmp(buffer, "t") == 0){
+						fprintf(stdout, "t");
+					}
 				}
 				close(pipefd[0]);
 			}
