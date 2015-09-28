@@ -1,0 +1,86 @@
+---------------------------------------
+CMPT 332 Assignment 1 
+PART B Documentation
+Authors: Taran Warnock and Kyle LeBlanc
+---------------------------------------
+
+Work log available in our Github repo:
+https://github.com/project-2501/CMPT_332.git
+
+-> Building instructions
+	Simply type make in the project directory then run with ./osh
+	$> make
+	$> ./osh
+
+-> Design Process
+	To complete this assignment, we worked in phases - as is documented in our
+	git log history. First, we implemented basic command execution with the
+	execvp() system call, then next got redirection working. We also put 
+	together a robust Makefile that takes care of building the project.
+	At this stage we chose to use the GNU Readline library for our command 
+	line input parsing because it comes built in with full EMACS key-bindings
+	and interactive history browsing that make our version of osh feel very
+	familiar and slick when compared to other shells such as bash and zsh.
+
+	At this stage, we added extra defensive mechanisms to 'whitelist' 
+	the only valid special characters which were '<' and '|'. The next big 
+	task was to devise a 'pipe mill' that would allow the user to enter in
+	a command with an arbitrary number of pipes and have the program handle
+	it gracefully. This was challenging because one does not know the number
+	of pipes at compile time, so very delicate parsing and looping constructs
+	had to be devised that would work automatically each time. With lots of
+	thinking, planning, testing and debugging - we were able to succeed at 
+	this task. The last part of the odd shell was the character duplication. 
+
+-> Implementation of Odd Shell:
+	As a brief overview of the documentation provided in the source code,
+	our implementation basically uses readline to get user input, then checks
+	for invalid characters. Then the program branches execution based on 
+	whether the input command is either a regular command, a redirection
+	command or a pipe command. The real magic happens in the execCmd() function
+	and the other two types of commands are kept to a minimum such that they
+	maximize the utility of execCmd. This is natural of course because after
+	all, redirection and pipe commands are made up of individual regular 
+	commands. See the source code for further details.
+
+-> Design Choices:
+	One extra note regarding the character duplication is that the assignment
+	spec was ambiguous as to the duplication of characters being redirected 
+	into a file. We made the choice not to duplicate the characters being 
+	redirected into the file. Only characters that are printed to stdout are
+	ever duplicated. This makes sense because if the characters in the file
+	had already been duplicated, then when a user would 'cat file.txt' then
+	the characters would then be quadrupuled! 
+
+-> Testing:
+	Due to our aggressive whitelisting strategy, our osh implementation will
+	warn the user of illegal character input. Also, we built a robust set of
+	string processing functions into our library that manage whitespace 
+	characters in the command names. This allows a user to enter the following
+	if they wanted to: 'ls          -l' and this would still work correctly.
+
+	Also, because file output redirection is only supported when it is the last
+	command present in a pipeline, trying to enter a '<' character in illegal
+	places will be caught and the user will be warned of invalid input.
+
+	Aside from these caveats, we did a large amount of testing with basic
+	command line workloads that one would do in bash. In fact, we tested the
+	output of our osh implementation with bash output and found them to be
+	basically identical in behaviour. 
+
+-> Limitations:
+	With respect to the assignment requirements, we do not have any limitations
+	in our program functionality. We were able to successfully meet all
+	design requirements. That being said, a nefarious user may be able to come
+	up with some unimagined input sequence that could cause our osh to do 
+	bizarre things - but to the best of our knowledege and testing, within 
+	reason, we understand our osh code to work very well for the purpose of
+	this assignment. 
+
+-> References
+	To assist with extra knowledge and background with using the UNIX system
+	programming API, we used the course materials, but also the following
+	work to fully understand the idiomatic usage of certain system calls
+	such as execvp(), fork() and pipe().
+
+	The Linux Programming Interface, Kerrisk 2010
