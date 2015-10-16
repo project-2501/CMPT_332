@@ -5,3 +5,6 @@ This is Taran and Kyle's repo for CMPT 332.
 
 ##Assignment 1
 * osh
+
+##Assignment 2
+* Memory Allocator
