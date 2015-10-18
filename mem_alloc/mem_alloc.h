@@ -13,13 +13,13 @@
 
 /* Define Data Types *********************************************************/
 typedef struct header {
-	int magic;
+	long long int magic;
 	int size;
 } header_t;
 
 typedef struct footer {
 	int size;
-	int magic;
+	long long int magic;
 } footer_t;
 
 typedef struct h_node {
@@ -29,11 +29,11 @@ typedef struct h_node {
 
 typedef struct f_node {
 	int size;
-	struct f_node *prev;
+	struct h_node *prev;
 } f_node_t;
 
 /* Declare static local variables ********************************************/ 
-extern const int MAGIC; 
+extern const long long int MAGIC; 
 extern const int NODE_SIZE; 
 extern const int BLOCK_SIZE; 
 

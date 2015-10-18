@@ -11,7 +11,6 @@
  *               - chunk size rounded to nearest multiple of 16
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -21,7 +20,7 @@
 
 #include "mem_alloc.h"
 
-const int MAGIC = 0xDEADBEEF;
+const long long int MAGIC = 0xDEADBEEFDEADBEEF;
 const int NODE_SIZE  = sizeof(h_node_t) + sizeof(f_node_t);
 const int BLOCK_SIZE = sizeof(header_t) + sizeof(footer_t);
 
@@ -71,36 +70,64 @@ void *M_Alloc(int size) {
 		next = head;
 
 	/* Calculate total size of request */
-	int	total_size = size + BLOCK_SIZE;
-	header_t *b_head;
-	footer_t *b_foot;
-	f_node_t *n_foot;
-	void *new_addr = NULL;
+	header_t *new_header;
+	footer_t *new_footer;
+	f_node_t *old_f_node;
+	h_node_t *old_next_node;
+	h_node_t *old_prev_node;
+	void *base_addr = (void *) next;
+	int old_size;
 
 	/* Apply next fit to find next available chunk */
 	do
 	{
-		if (total_size <= next->size) {
+		if (size <= next->size) {
 
-			int temp_size = next->size;
-			h_node_t *temp_n_head = next->next;
+			/* Save important information needed shortly */
+			old_f_node = (f_node_t *) (base_addr + next->size + sizeof(h_node_t));
+			old_next_node = next->next;
+			old_prev_node = old_f_node->prev;
+			old_size = next->size;
 
-			/* Stamp header and footer onto new memory block */
-			b_head = (header_t *) next;
-			b_head->size = size;
-			b_head->magic = MAGIC;
-			b_foot = (footer_t *) ( ((void *) b_head) + b_head->size + sizeof(header_t));
-			b_foot->size = size;
-			b_foot->magic = MAGIC;
-			new_addr = (void *) ( ((void *) b_head) + sizeof(header_t));
+			if ( (old_size - size) == 0) { /* Perfect size match */
 
-			/* Update this block of the free list */
-			next = (h_node_t *) ( ((void *) b_head) + b_head->size + BLOCK_SIZE);
-			next->size = temp_size - total_size;
-			next->next = temp_n_head;
-			n_foot = (f_node_t *) ( ((void *) next) + next->size + sizeof(h_node_t));
-			n_foot->size = temp_size - total_size;
-			if ( (void *) head == (void *) b_head)
+				/* Update the next pointer */
+				next = old_next_node;
+
+				/* Update the next node not to point back anymore */
+				f_node_t *old_next_f_node = (f_node_t *) ((void *)old_next_node + old_next_node->size + sizeof(h_node_t));
+				old_next_f_node->prev = old_prev_node;
+
+				/* Stamp header and footer onto new memory block */
+				new_header = (header_t *) base_addr;
+				new_header->size = size;
+				new_header->magic = MAGIC;
+				new_footer = (footer_t *) (base_addr + new_header->size + sizeof(header_t));
+				new_footer->size = size;
+				new_footer->magic = MAGIC;
+			}
+			else { /* Split into two pieces */
+				/* Stamp header and footer onto new memory block */
+				new_header = (header_t *) base_addr;
+				new_header->size = size;
+				new_header->magic = MAGIC;
+				new_footer = (footer_t *) (base_addr + new_header->size + sizeof(header_t));
+				new_footer->size = size;
+				new_footer->magic = MAGIC;
+
+				/* Update this node on the free list */
+				next = (h_node_t *) (base_addr + new_header->size + BLOCK_SIZE);
+				next->size = old_size - (size + BLOCK_SIZE);
+				next->next = old_next_node;
+				old_f_node->size = old_size - (size + BLOCK_SIZE);
+
+				/* Update previous free list node to point to this new one */
+				if (old_prev_node != NULL)
+					old_prev_node->next = next;
+			}
+
+			/* Update head pointer if it was previously pointing here */
+			if ( (void *) head == (void *) new_header)
 				head = next;
 
 			break;
@@ -115,18 +142,39 @@ void *M_Alloc(int size) {
 	/* Return NULL if no space found */
 	if (next == NULL)
 		return NULL;
-	else
-		return new_addr;
+	else {
+		/* Return address just after the header metadata */
+		return ((void *) new_header + sizeof(header_t));
+	}
 }
 
 int M_Free(void *p) {
 
 	/* Verify this is a valid pointer */
-	footer_t *prev_foot = (footer_t *) (p - BLOCK_SIZE);
-	if (prev_foot->magic != MAGIC)
+	header_t *header = (header_t *) (p - sizeof(header_t));
+	if (header->magic != MAGIC)
 		return -1;
+	
+	assert(header->size >= 16);
 
-	/* Add this chunk to the free list */
+	/* Calculate size left for this new node */
+	int new_size = (header->size + BLOCK_SIZE) - NODE_SIZE;
+	
+	/* Setup all of the pointers needed to update free list */
+	h_node_t *new_head = (h_node_t *) (p - sizeof(header_t));
+	f_node_t *new_foot = (f_node_t *) ((p + header->size + sizeof(footer_t)) - sizeof(f_node_t));
+	h_node_t *old_head = head;
+	f_node_t *old_foot = (f_node_t *) ((void *) head + sizeof(h_node_t) + head->size);
+
+	/* Stamp metadata on this new chunk */
+	new_head->size = new_size;
+	new_head->next = old_head;
+	new_foot->size = new_size;
+	new_foot->prev = NULL;  // prev of head node always null
+	head = new_head;
+
+	/* Stamp metadata on the old chunk */
+	old_foot->prev = (h_node_t *) new_head;
 
 	return 0;
 }
@@ -152,5 +200,6 @@ void M_Display() {
 		printf("    Size %d\n", footer->size);
 		printf("    Prev %p\n", footer->prev);
 		itr = itr->next;
+		count++;
 	} while (itr != NULL);
 }
