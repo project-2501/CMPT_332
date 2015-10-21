@@ -12,6 +12,8 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
@@ -30,6 +32,9 @@ static h_node_t *head = NULL;
 /* Pointer to location of last allocation into free list */
 static h_node_t *next = NULL;
 
+/* Base address of memory region returned by mmap() */
+static void *base_addr = NULL;
+
 /* Function implementations **************************************************/
 int M_Init(int size) {
 
@@ -37,27 +42,26 @@ int M_Init(int size) {
 	if (head != NULL)
 		return -1;
 
-	void *addr;
 	f_node_t *footer;
 
 	/* Calculate total size for new mapping */
 	int	total_size = size + NODE_SIZE;
 
 	/* Create an anonymous private mapping */
-	addr = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
-	if (addr == MAP_FAILED)
+	base_addr = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (base_addr == MAP_FAILED)
 		return -1;
 
-	printf("M_Init(): Size %d at address %p\n\n", total_size, addr);
+	printf("M_Init(): Size %d at address %p\n\n", total_size, base_addr);
 
 	/* Setup the head of the free list */
-	head = (h_node_t *) addr;
+	head = (h_node_t *) base_addr;
 	head->size = size;
 	head->next = NULL;
 	next = head;
 
 	/* Place the footer at the end of the memory region */
-	footer = (f_node_t *) (addr + size + sizeof(h_node_t));
+	footer = (f_node_t *) (base_addr + size + sizeof(h_node_t));
 	footer->size = size;
 	footer->prev = NULL;
 
@@ -156,25 +160,84 @@ int M_Free(void *p) {
 		return -1;
 	
 	assert(header->size >= 16);
-
-	/* Calculate size left for this new node */
-	int new_size = (header->size + BLOCK_SIZE) - NODE_SIZE;
 	
 	/* Setup all of the pointers needed to update free list */
 	h_node_t *new_head = (h_node_t *) (p - sizeof(header_t));
-	f_node_t *new_foot = (f_node_t *) ((p + header->size + sizeof(footer_t)) - sizeof(f_node_t));
+	f_node_t *new_foot = (f_node_t *) (p + header->size);
 	h_node_t *old_head = head;
 	f_node_t *old_foot = (f_node_t *) ((void *) head + sizeof(h_node_t) + head->size);
 
 	/* Stamp metadata on this new chunk */
-	new_head->size = new_size;
+	new_head->size = header->size;
 	new_head->next = old_head;
-	new_foot->size = new_size;
+	new_foot->size = new_head->size;
 	new_foot->prev = NULL;  // prev of head node always null
 	head = new_head;
 
-	/* Stamp metadata on the old chunk */
+	/* Update prev pointer of the old head */
 	old_foot->prev = (h_node_t *) new_head;
+
+	/* Check if we can coalesce to the left or right */
+	header_t *next_header = (header_t *) ((void *) new_foot + sizeof(f_node_t));
+	footer_t *prev_footer = (footer_t *) ((void *) new_head - sizeof(f_node_t));
+	bool doRight = (next_header->magic != MAGIC);
+	bool doLeft;
+	if ( (void *) prev_footer < (void *) base_addr ) // Test that we are not outside memory region
+		doLeft = false;
+	else
+		doLeft  = (prev_footer->magic != MAGIC);
+
+	/* Calculate all addresses needed */
+	h_node_t *r_h_node = (h_node_t *) next_header;
+	f_node_t *r_f_node = (f_node_t *) ((void *) r_h_node + r_h_node->size + sizeof(h_node_t));
+	f_node_t *l_f_node = (f_node_t *) prev_footer;
+	h_node_t *l_h_node = (h_node_t *) ((void *) l_f_node - l_f_node->size - sizeof(h_node_t));
+
+	if (doRight && !(doLeft)) {      /* coalesce right only */
+		printf("M_Free: coalesceing right!\n");
+
+		int new_total_size = new_head->size + r_h_node->size + NODE_SIZE;
+
+		/* Update pointers */
+		new_head->next = r_h_node->next;
+		r_f_node->prev = new_foot->prev;
+
+		/* Update size fields */
+		new_head->size = new_total_size;
+		r_f_node->size = new_total_size;
+
+		/* Zero out the old memory */
+		memset((void *) new_head + sizeof(h_node_t), 0x00, new_total_size);
+	}
+	else if (doLeft && !(doRight)) { /* coalesce left only */
+		printf("M_Free: coalesceing left!\n");
+
+		int new_total_size = new_head->size + l_h_node->size + NODE_SIZE;
+
+		/* Update pointers */
+		head = l_h_node;
+
+		/* Update size fields */
+		head->size = new_total_size;
+		new_foot->size = new_total_size;
+
+		/* Zero out the old memory */
+		memset((void *) new_head + sizeof(h_node_t), 0x00, new_total_size);
+	}
+	else if (doLeft && doRight) {    /* coalesce both sides */
+		printf("M_Free: coalesceing both sides!\n");
+
+		int new_total_size = l_h_node->size + head->size + r_h_node->size + 2*NODE_SIZE;
+		head = l_h_node;
+		head->size = new_total_size;
+		head->next = r_h_node->next;
+
+		r_f_node->size = new_total_size;
+		r_f_node->prev = NULL;
+
+		/* Zero out the old memory */
+		memset((void *) new_head + sizeof(h_node_t), 0x00, new_total_size);
+	}
 
 	return 0;
 }
@@ -189,7 +252,7 @@ void M_Display() {
 	do
 	{
 		/* Print the header */
-		printf("Summary Block %d:\n", count);
+		printf("Summary Block %d Address %p:\n", count, itr);
 		printf("  Header\n");
 		printf("    Size %d\n", itr->size);
 		printf("    Next %p\n", itr->next);

@@ -11,6 +11,11 @@
 #ifndef MEM_ALLOC_H
 #define MEM_ALLOC_H
 
+/* Declare static local variables ********************************************/ 
+extern const long long int MAGIC; 
+extern const int NODE_SIZE; 
+extern const int BLOCK_SIZE; 
+
 /* Define Data Types *********************************************************/
 typedef struct header {
 	long long int magic;
@@ -31,11 +36,6 @@ typedef struct f_node {
 	int size;
 	struct h_node *prev;
 } f_node_t;
-
-/* Declare static local variables ********************************************/ 
-extern const long long int MAGIC; 
-extern const int NODE_SIZE; 
-extern const int BLOCK_SIZE; 
 
 /* Declare Function Prototypes ***********************************************/
 

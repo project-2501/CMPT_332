@@ -7,8 +7,8 @@
 int edge_case_unit_test(void);
 
 /* Testing Parameters */
-const int MEM_SIZE   = 256;
-const int MAX_ALLOCS = 3;
+const int MEM_SIZE   = 1024;
+const int MAX_ALLOCS = 16;
 const int ALLOC_SIZE = 16;
 
 int main() {
@@ -40,33 +40,16 @@ int main() {
 	printf("Free List after %d allocations\n", MAX_ALLOCS);
 	M_Display();
 
-	for (int i = 0; i < MAX_ALLOCS; i++) {
+	for (int i = MAX_ALLOCS-1; i >= 0; i--) {
 		if (M_Free(block_ptrs[i]) == -1) {
 				fprintf(stderr, "M_Free failed\n");
 				return(EXIT_FAILURE);
 		}
 	}
 
-	printf("Free List after %d frees\n", MAX_ALLOCS);
+	printf("Free List after %d free's\n", MAX_ALLOCS);
 	M_Display();
 	
-	/*
-	if ( (block_ptrs[1] = M_Alloc(ALLOC_SIZE)) == NULL) {
-		fprintf(stderr, "M_Alloc failed\n");
-		return(EXIT_FAILURE);
-	}
-
-	printf("Free List after one reallocation\n");
-	M_Display();
-	
-	if (M_Free(block_ptrs[1]) == -1) {
-			fprintf(stderr, "M_Free failed\n");
-			return(EXIT_FAILURE);
-	}
-
-	printf("Free List Final\n");
-	M_Display();
-	*/
 	return 0;
 }
 
