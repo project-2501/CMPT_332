@@ -16,13 +16,16 @@ CFLAGS = -std=c99 -g -I${OSH_INC_DIRS} -pedantic -Wall -Wextra \
 RM = rm -f
 
 # List of executable files to be built
-EXE = test
+EXE = test_coalesce test_next
 
 all: 
 	${MAKE} ${EXE}
 
-test: test.c mem_alloc.c
-	${CC} ${CFLAGS} -o test test.c mem_alloc.c
+test_coalesce: test_coalesce.c mem_alloc.c
+	${CC} ${CFLAGS} -o test_coalesce test_coalesce.c mem_alloc.c
+
+test_next: test_next.c mem_alloc.c
+	${CC} ${CFLAGS} -o test_next test_next.c mem_alloc.c
 
 clean: 
 	${RM} ${EXE} *.o

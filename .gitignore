@@ -1,4 +1,5 @@
 *.a
 *.o
 osh
-test
+test_coalesce
+test_next

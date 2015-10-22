@@ -25,6 +25,7 @@
 const long long int MAGIC = 0xDEADBEEFDEADBEEF;
 const int NODE_SIZE  = sizeof(h_node_t) + sizeof(f_node_t);
 const int BLOCK_SIZE = sizeof(header_t) + sizeof(footer_t);
+static int roundUp(int numToRound, int multiple);
 
 /* Pointer to the head of the free list */
 static h_node_t *head = NULL;
@@ -70,8 +71,16 @@ int M_Init(int size) {
 
 void *M_Alloc(int size) {
 
+	/* Update next pointer if it is dangling */
 	if (next == NULL)
 		next = head;
+
+	/* size must obviously be greater than zero */
+	if (size < 0)
+		return NULL;
+
+	/* Round size up to nearest multiple of 16 */
+	size = roundUp(size, 16);
 
 	/* Calculate total size of request */
 	header_t *new_header;
@@ -83,9 +92,10 @@ void *M_Alloc(int size) {
 	int old_size;
 
 	/* Apply next fit to find next available chunk */
+	h_node_t *old_next = next;
 	do
 	{
-		if (size <= next->size) {
+		if ( (size + NODE_SIZE) <= next->size) {
 
 			/* Save important information needed shortly */
 			old_f_node = (f_node_t *) (base_addr + next->size + sizeof(h_node_t));
@@ -137,14 +147,16 @@ void *M_Alloc(int size) {
 			break;
 		}
 		else {
-			/* Check next node on free list */
+			/* Check next node on free list, or wrap back around to head */
 			next = next->next;
+			if (next == NULL)
+				next = head;
 		}
 
-	} while(next != NULL);
+	} while(next != old_next); /* Loop back around once and only once */
 	
 	/* Return NULL if no space found */
-	if (next == NULL)
+	if (next == old_next)
 		return NULL;
 	else {
 		/* Return address just after the header metadata */
@@ -196,10 +208,14 @@ int M_Free(void *p) {
 	if (doRight && !(doLeft)) {      /* coalesce right only */
 		printf("M_Free: coalesceing right!\n");
 
+		/* Update the next pointer if needed */
+		if (r_h_node == next)
+			next = head;
+
 		int new_total_size = new_head->size + r_h_node->size + NODE_SIZE;
 
 		/* Update pointers */
-		if (r_h_node->next != NULL) { /* Do not try and update tail node */ 
+		if (r_h_node->next != NULL) { 
 			f_node_t * next_node_footer = (f_node_t *) ((void *) r_h_node->next + r_h_node->next->size + sizeof(h_node_t)); 
 			next_node_footer->prev = r_f_node->prev;
 		}
@@ -245,6 +261,11 @@ int M_Free(void *p) {
 		memset((void *) head + sizeof(h_node_t), 0x00, new_total_size);
 	}
 	else if (doLeft && doRight) {    /* coalesce both sides */
+
+		/* Update next pointer if needed */
+		if (r_h_node == next)
+			next = l_h_node;
+
 		printf("M_Free: coalesceing both sides!\n");
 
 		int new_total_size = l_h_node->size + head->size + r_h_node->size + 2*NODE_SIZE;
@@ -288,4 +309,18 @@ void M_Display() {
 		itr = itr->next;
 		count++;
 	} while (itr != NULL);
+}
+
+static int
+roundUp(int numToRound, int multiple) 
+{ 
+	if(multiple == 0) 
+		return numToRound; 
+
+	int remainder = numToRound % multiple;
+	
+	if (remainder == 0)
+ 	   return numToRound;
+
+    return numToRound + multiple - remainder;
 }

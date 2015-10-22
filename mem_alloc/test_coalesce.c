@@ -9,7 +9,7 @@ int edge_case_unit_test(void);
 /* Testing Parameters */
 const int MEM_SIZE   = 65536;
 const int MAX_ALLOCS = 17;
-const int ALLOC_SIZE = 2048;
+const int ALLOC_SIZE = 2037; /* Will be rounded up to 2048 */
 
 int main() {
 	char *block_ptrs[MAX_ALLOCS];
