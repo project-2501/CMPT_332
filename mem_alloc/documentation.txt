@@ -1,0 +1,73 @@
+---------------------------------------
+CMPT 332 Assignment 2
+PART C Documentation
+Authors: Taran Warnock and Kyle LeBlanc
+---------------------------------------
+
+Work log available on our Github repo:
+https://github.com/project-2501/CMPT_332.git
+
+-> Building instructions:
+	Run make in the project directory:
+	$> make
+
+	Run both of the test programs:
+	$> ./test_coalesce
+	$> ./test_next
+
+-> Design Process:
+	The design process took a lot of planning in order to figure out how
+	to gracefully embed the free list within the address space. The 
+	mem_alloc.h header file shows all of the data structures used, such as
+	the ones needed to represent the headers and footers of the chunks and 
+	nodes. The library interface used was provided in the assignment spec,
+	name the four functions required. A basic sketch was layed out in terms
+	of how headers and footers should be updated during allocation and freeing
+	calls. Unfortunately, there are so many edge cases that can occur, most
+	of the design of the algorithms in the allocation and free routines
+	had to be re-designed several times to be more robust. In the end, we
+	came up with a design that seems to work quite well in our tests.
+
+-> Design Choices:
+	Other than the structures and fields used within them, not a lot of
+	other high level design choices had to be made. The real work was
+	just in coming up with robust mechanisms for updating the free list
+	during free operations and new allocations.
+
+-> Implementation:
+	The implementation took place over several work sessions totalling in
+	about 20 hours of development time. The most difficult aspect is trying
+	to maintain the integrity of the free list and catching all edge cases
+	that can occure during free and allocation operations. For instance, 
+	coalescing causes serious issues because the free list and the linear
+	layout of the memory region are all mixed up together. In most cases,
+	the edge cases usually boil down to handling regular nodes, but also
+	the possibility of dealing with the head or tail of the list. Likewise,
+	the 'next fit' policy requirement created a whole nother headache now
+	because the next and head pointers had to be handled very carefully
+	in order to inadvertenly mess with the memory region they were pointing
+	to before some operation. The documented source code details at what 
+	points this needs to be done.
+
+-> Testing:
+	For our test benches, we basically wrote a robust test for coalescing
+	that allocates a linear sequence of blocks, but then free's them in
+	an interleaved fashion such that the 3 types of coalescing are triggered:
+	right, left and double. The output of the program prints a summary of the
+	work that is being done, in the end the free list is back to its original
+	state before any allocations. This doesn't prove that it is bug free, but
+	that it works quite well in typical cases. The second test bench allocates
+	blocks of varying sizes and then free's and reallocates more chunks. The
+	intention of this test is to test that the next and head pointers are
+	being updated correctly. This further tests that the M_Alloc function
+	searches through the list for an available free node of the correct size
+	and that further allocations occur according to the next fit policy. 
+
+-> Limitations:
+	Due	to the horrific complexity of our library, there is likely some code
+	paths that still have bugs yet to be discovered, but for the purpose of
+	this assignment, we feel that enough has been done and demonstrated to meet
+	a reasonable expectation of Part C. We tried to add in as much inline
+	comments and documentation as we could to increase the readability but
+	due to the ugliness of casting pointers, it is still quite hard to read.
+

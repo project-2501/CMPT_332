@@ -4,12 +4,12 @@
 #include "mem_alloc.h"
 
 /* Testing Parameters */
-const int MEM_SIZE   = 544;
+const int MEM_SIZE   = 700;
 const int MAX_ALLOCS = 5;
 const int ALLOC_SIZE = 64; /* Will be rounded up to 2048 */
 
 int main() {
-	int   block_sizes[5] = {128, 112, 64, 32, 16};
+	int   block_sizes[5] = {256, 112, 64, 32, 16};
 	char *block_ptrs[MAX_ALLOCS];
 
 	/* Initialize a memory region */
@@ -29,10 +29,10 @@ int main() {
 		}
 	}
 
-	printf("After allocating 5 variable chunks ------\n");
+	printf("\nAfter allocating 5 variable chunks ------\n");
 	M_Display();
 
-	printf("Selectively release 2 chunks ------------\n");
+	printf("\nSelectively release 2 chunks ------------\n");
 	if (M_Free(block_ptrs[0]) == -1) {
 		fprintf(stderr, "M_Free failed\n");
 	    return(EXIT_FAILURE);
@@ -41,13 +41,18 @@ int main() {
 		fprintf(stderr, "M_Free failed\n");
 	    return(EXIT_FAILURE);
 	}
+	M_Display();
 
-	if ( (block_ptrs[0] = M_Alloc(48)) == NULL) {
+	printf("\nReallocate chunks of size 80 and 16 ------\n");
+	if ( (M_Alloc(80)) == NULL) {
 		fprintf(stderr, "M_Alloc failed\n");
 		return(EXIT_FAILURE);
 	}
-
+	if ( (M_Alloc(16)) == NULL) {
+		fprintf(stderr, "M_Alloc failed\n");
+		return(EXIT_FAILURE);
+	}
 	M_Display();
-	
+
 	return 0;
 }
