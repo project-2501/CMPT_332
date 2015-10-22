@@ -7,9 +7,9 @@
 int edge_case_unit_test(void);
 
 /* Testing Parameters */
-const int MEM_SIZE   = 1024;
-const int MAX_ALLOCS = 16;
-const int ALLOC_SIZE = 16;
+const int MEM_SIZE   = 65536;
+const int MAX_ALLOCS = 17;
+const int ALLOC_SIZE = 2048;
 
 int main() {
 	char *block_ptrs[MAX_ALLOCS];
@@ -26,7 +26,7 @@ int main() {
 		return(EXIT_FAILURE);
 	}
 	
-	printf("Starting Free List\n");
+	printf("Starting Free List ----------------------\n");
 	M_Display();
 
 	/* Allocate range of chunks */
@@ -37,17 +37,41 @@ int main() {
 		}
 	}
 	
-	printf("Free List after %d allocations\n", MAX_ALLOCS);
+	printf("\nFree List after %d allocations ----------\n", MAX_ALLOCS);
 	M_Display();
 
-	for (int i = MAX_ALLOCS-1; i >= 0; i--) {
+	/* Stagger the M_Free's so that it will coalesce 3 different ways */
+
+	printf("\nFreeing everything -----------------------\n");
+	for (int i = 0; i < MAX_ALLOCS; i+=4) {
 		if (M_Free(block_ptrs[i]) == -1) {
 				fprintf(stderr, "M_Free failed\n");
 				return(EXIT_FAILURE);
 		}
 	}
 
-	printf("Free List after %d free's\n", MAX_ALLOCS);
+	for (int i = 3; i < MAX_ALLOCS; i+=4) {
+		if (M_Free(block_ptrs[i]) == -1) {
+				fprintf(stderr, "M_Free failed\n");
+				return(EXIT_FAILURE);
+		}
+	}
+
+	for (int i = 1; i < MAX_ALLOCS; i+=4) {
+		if (M_Free(block_ptrs[i]) == -1) {
+				fprintf(stderr, "M_Free failed\n");
+				return(EXIT_FAILURE);
+		}
+	}
+
+	for (int i = 2; i < MAX_ALLOCS; i+=4) {
+		if (M_Free(block_ptrs[i]) == -1) {
+				fprintf(stderr, "M_Free failed\n");
+				return(EXIT_FAILURE);
+		}
+	}
+
+	printf("\nFree List after %d free's ---------------\n", MAX_ALLOCS);
 	M_Display();
 	
 	return 0;
