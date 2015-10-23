@@ -65,6 +65,19 @@ https://github.com/project-2501/CMPT_332.git
 	and that further allocations occur according to the next fit policy. 
 
 -> Limitations:
+	One of the tradeoffs in this design is the space complexity of 
+	maintaining all of the node/chunk metadata. For both types of blocks, 
+	there is an associated 32 bytes of data that is stored - 16 bytes for
+	the header and 16 bytes for the footer. For big allocations of 1024
+	bytes for example or larger, the extra space is not a big deal, but
+	does seem quite wasteful if a program has many allocations of small
+	chunk requests such as 16 bytes. Then, as you can see the metadata
+	is larger than the actual allocated chunk! So it would be the case
+	that if a user had allocated thousands of chunks of 16 bytes, then
+	it would take 32*1000 bytes to store all the  metadata which is crazy.
+	But there is no way around 	it with this approach because there has 
+	to be bookeeping info for each and every chunk allocated and freed.
+
 	Due	to the scary complexity of all the pointer casting, there is likely some
 	code paths that still have bugs yet to be discovered, but for the purpose of
 	this assignment, we feel that enough has been done and demonstrated to meet
