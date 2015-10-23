@@ -30,7 +30,8 @@ https://github.com/project-2501/CMPT_332.git
 
 -> Design Choices:
 	Other than the structures and fields used within them, not a lot of
-	other high level design choices had to be made. The real work was
+	other high level design choices had to be made. The interfaces for
+	each of the 4 functions was given in the assignment. The real work was
 	just in coming up with robust mechanisms for updating the free list
 	during free operations and new allocations.
 
@@ -64,10 +65,12 @@ https://github.com/project-2501/CMPT_332.git
 	and that further allocations occur according to the next fit policy. 
 
 -> Limitations:
-	Due	to the horrific complexity of our library, there is likely some code
-	paths that still have bugs yet to be discovered, but for the purpose of
+	Due	to the scary complexity of all the pointer casting, there is likely some
+	code paths that still have bugs yet to be discovered, but for the purpose of
 	this assignment, we feel that enough has been done and demonstrated to meet
 	a reasonable expectation of Part C. We tried to add in as much inline
 	comments and documentation as we could to increase the readability but
-	due to the ugliness of casting pointers, it is still quite hard to read.
+	due to the ugliness of casting pointers, it is still quite hard to read, not
+	to mention all of the extra tests needed to catch edge cases from corrupting
+	the free list.
 

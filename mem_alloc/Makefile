@@ -5,7 +5,7 @@
 
 # Directories to include in the build
 OSH_INC_DIRS = 
-OSH_INC_LIBS = 
+OSH_INC_LIBS = mem_alloc.a 
 LDLIBS = ${OSH_INC_LIBS}
 
 # Compiler flags
@@ -19,14 +19,11 @@ RM = rm -f
 EXE = test_coalesce test_next
 
 all: 
+	${CC} -g -c mem_alloc.c; \
+	${AR} rs mem_alloc.a *.o; \
 	${MAKE} ${EXE}
 
-test_coalesce: test_coalesce.c mem_alloc.c
-	${CC} ${CFLAGS} -o test_coalesce test_coalesce.c mem_alloc.c
-
-test_next: test_next.c mem_alloc.c
-	${CC} ${CFLAGS} -o test_next test_next.c mem_alloc.c
 
 clean: 
-	${RM} ${EXE} *.o
+	${RM} ${EXE} *.o *.a
 
