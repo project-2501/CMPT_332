@@ -8,3 +8,6 @@ This is Taran and Kyle's repo for CMPT 332.
 
 ##Assignment 2
 * Memory Allocator
+
+##Assignment 3
+* DogWash synchronization problem
