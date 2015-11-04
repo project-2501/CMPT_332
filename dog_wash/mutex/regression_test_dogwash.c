@@ -8,7 +8,7 @@
 *              test_dogwash.c. Once a scenario is tested and shown to work
 *              correctly using test_dogwash.c, add the test scenario in here
 *              so that a range of unit tests can be run to make sure that 
-*              implementation tweaks don't break old tests.
+*              implementation tweaks don't break old test cases. 
 *
 */
 
@@ -18,9 +18,9 @@
 #include "dogwashsynch.h"
 
 /* Local function declarations */
+static int unit_test_N(int num_bays, int num_DA, int num_DB, int num_DO);
 static pthread_t *create_dogs(int num_DA, int num_DB, int num_DO);
 static int run_unit_tests(void);
-static int unit_test_N(int num_bays, int num_DA, int num_DB, int num_DO);
 
 /* Main test program **********************************************************/
 int main(int argc, char *argv[]) {
@@ -44,7 +44,7 @@ run_unit_tests(void) {
 	int result = 0;
 
 	/* 3 DA's competing for single bay */
-	if (unit_test_N(1, 3, 0, 0) == EXIT_FAILURE) {
+	if (unit_test_N(1,3,0,0) == EXIT_FAILURE) {
 		fprintf(stderr, "Unit Test %d failed\n", 1);
 		result++;
 	}

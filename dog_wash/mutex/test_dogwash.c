@@ -4,7 +4,9 @@
 * Author: Kyle and Taran
 * Date:   November 03 2015
 *
-* Description: Test program for the dogwash synchronization problem. 
+* Description: Test program for the dogwash synchronization problem. User
+*              must provide command line arguments that specify the number
+*              of bays to use and the number of each kind of dog.
 */
 
 #include <stdio.h>
@@ -42,13 +44,13 @@ int main(int argc, char *argv[]) {
 		printf("Initialized DogWash - Bays: %d\n", num_bays);
 
 	/* Create some 'dog' threads **********************************************/
-
 	dogs = create_dogs(num_DA, num_DB, num_DO);
 	if (dogs == NULL) {
 		fprintf(stderr, "Error: could not create the dogs\n");
 		return EXIT_FAILURE;
 	}
 
+	/* Wait for all the threads to exit */
 	for (int i = 0; i < total; i++) {
 		if(pthread_join(dogs[i], NULL) != 0) {
 			fprintf(stderr, "Test Error: could not join thread\n");

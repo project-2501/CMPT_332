@@ -47,7 +47,7 @@ int newdog(dogtype my_type){
 
 	if (my_type == DA) {
 
-		// CV stuff
+		// CV stuff, add in assertions
 		dogdone(my_type);
 	}
 	else if (my_type == DB) {
