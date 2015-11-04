@@ -10,13 +10,6 @@
 *              so that a range of unit tests can be run to make sure that 
 *              implementation tweaks don't break old tests.
 *
-* Usage: To add a new test, do the following:
-* 		 
-* 		 -> Add a new function declaration (eg. static int unit_test_n(void))
-* 		 -> Copy-Paste a previous test     (eg. unit_test_1)
-* 		 -> Adjust the parameters to suit  (eg. num_bays, num_DA, etc.)
-* 		 -> Document your test scenario    (eg. 5 DA's and 5 DB's) 
-* 		 -> Add code to run_unit_tests to invoke your new unit test
 */
 
 #include <stdio.h>
@@ -27,8 +20,7 @@
 /* Local function declarations */
 static pthread_t *create_dogs(int num_DA, int num_DB, int num_DO);
 static int run_unit_tests(void);
-static int unit_test_1(void);
-static int unit_test_2(void);
+static int unit_test_N(int num_bays, int num_DA, int num_DB, int num_DO);
 
 /* Main test program **********************************************************/
 int main(int argc, char *argv[]) {
@@ -51,12 +43,15 @@ static int
 run_unit_tests(void) {
 	int result = 0;
 
-	if (unit_test_1() == EXIT_FAILURE) {
-		fprintf(stderr, "Unit Test 1 failed\n");
+	/* 3 DA's competing for single bay */
+	if (unit_test_N(1, 3, 0, 0) == EXIT_FAILURE) {
+		fprintf(stderr, "Unit Test %d failed\n", 1);
 		result++;
 	}
-	if (unit_test_2() == EXIT_FAILURE) {
-		fprintf(stderr, "Unit Test 2 failed\n");
+
+	/* 2 DA's and 2 DB's competing for 1 bays */
+	if (unit_test_N(1,2,2,0) == EXIT_FAILURE) {
+		fprintf(stderr, "Unit Test %d failed\n", 2);
 		result++;
 	}
 
@@ -64,17 +59,11 @@ run_unit_tests(void) {
 }
 
 /*
- * Test Scenario:
- *  Tests creation of multiple DA's synchronizing access to single bay
+ * Descriptions: General test function, pass in system parameters to create
+ *               desired unit test.
  */
-static int 
-unit_test_1(void) {
+static int unit_test_N(int num_bays, int num_DA, int num_DB, int num_DO) {
 
-	/* System parameters for this unit test */
-	int num_bays = 1;
-	int num_DA = 3;
-	int num_DB = 0;
-	int num_DO = 0;
 	int total  = num_DA + num_DB + num_DO;
 	pthread_t *dogs;
 
@@ -90,6 +79,7 @@ unit_test_1(void) {
 		return EXIT_FAILURE;
 	}
 
+	/* Join the dog threads as they complete */
 	for (int i = 0; i < total; i++) {
 		if(pthread_join(dogs[i], NULL) != 0) {
 			fprintf(stderr, "Test Error: could not join thread\n");
@@ -97,54 +87,13 @@ unit_test_1(void) {
 		}
 	}
 
+	/* Clean up the simulation */
 	if (dogwash_done() == -1) {
 		fprintf(stderr, "Error - UT1: could not shutdown dog wash\n");
 		return EXIT_FAILURE;
 	}
 
-	free(dogs);
-	return EXIT_SUCCESS;
-}
-
-/*
- * Test Scenario:
- *  Tests creation of multiple DA's and DB's
- */
-static int 
-unit_test_2(void) {
-
-	/* System parameters for this unit test */
-	int num_bays = 3;
-	int num_DA = 3;
-	int num_DB = 3;
-	int num_DO = 0;
-	int total  = num_DA + num_DB + num_DO;
-	pthread_t *dogs;
-
-	if (dogwash_init(num_bays) == -1) {
-		fprintf(stderr, "Error - UT2: could not initialize dog wash\n");
-		return EXIT_FAILURE;
-	}
-
-	/* Create a variety of dogs here */
-	dogs = create_dogs(num_DA, num_DB, num_DO);
-	if (dogs == NULL) { 
-		fprintf(stderr, "Error - UT2: could not create dogs\n");
-		return EXIT_FAILURE;
-	}
-
-	for (int i = 0; i < total; i++) {
-		if(pthread_join(dogs[i], NULL) != 0) {
-			fprintf(stderr, "Test Error: could not join thread\n");
-			return EXIT_FAILURE;
-		}
-	}
-
-	if (dogwash_done() == -1) {
-		fprintf(stderr, "Error - UT2: could not shutdown dog wash\n");
-		return EXIT_FAILURE;
-	}
-
+	/* Free the memory allocated by create_dogs() */
 	free(dogs);
 	return EXIT_SUCCESS;
 }

@@ -16,16 +16,21 @@ static pthread_t *create_dogs(int num_DA, int num_DB, int num_DO);
 
 int main(int argc, char *argv[]) {
 
-	int num_bays = 0;
+	int num_bays, num_DA, num_DB, num_DO, total;
 	pthread_t *dogs = NULL;  /* Pointer to array of dog pthreads */
 
 	/* Take one command line arguments ***************************************/
-	if (argc < 2) {
-		fprintf(stderr, "Usage: ./test_dogwash num_bays \n");
+	if (argc < 5) {
+		fprintf(stderr,"Usage: ./test_dogwash num_bays num_DA num_DB num_DO\n");
 		return EXIT_FAILURE;
 	}
 	else {
+		/* Assign the simulation parameters */
 		num_bays = atoi(argv[1]);
+		num_DA   = atoi(argv[2]);
+		num_DB   = atoi(argv[3]);
+		num_DO   = atoi(argv[4]);
+		total  = num_DA + num_DB + num_DO;
 	}
 
 	/* Initialize the dogwash *************************************************/
@@ -37,10 +42,6 @@ int main(int argc, char *argv[]) {
 		printf("Initialized DogWash - Bays: %d\n", num_bays);
 
 	/* Create some 'dog' threads **********************************************/
-	int num_DA = 1;
-	int num_DB = 1;
-	int num_DO = 1;
-	int total  = num_DA + num_DB + num_DO;
 
 	dogs = create_dogs(num_DA, num_DB, num_DO);
 	if (dogs == NULL) {
