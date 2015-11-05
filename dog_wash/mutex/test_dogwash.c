@@ -51,8 +51,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Wait for all the threads to exit */
+	void *retval;
 	for (int i = 0; i < total; i++) {
-		if(pthread_join(dogs[i], NULL) != 0) {
+		if(pthread_join(dogs[i], &retval) != 0) {
 			fprintf(stderr, "Test Error: could not join thread\n");
 			return EXIT_FAILURE;
 		}
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]) {
 
 /* Description: Creates a range of 'dog' pthreads. Can pass in 
 *               a varying amount of different dog types to compete for a 
-*               bay in the dogwash. 
+*               bay in the dogwash. Threads created with default attributes.
 *  Inputs:
 *   int num_DA - the number of DA dogs to create
 *   int num_DB - the number of DB dogs to create

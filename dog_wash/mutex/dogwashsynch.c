@@ -35,7 +35,7 @@ int dogwash_init(int numbays) {
 	if (pthread_mutex_init(&m, NULL) != 0)
 		return EXIT_FAILURE;
 
-	if (pthread_cond_init(&c, NULL))
+	if (pthread_cond_init(&c, NULL) != 0)
 		return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;;
@@ -48,6 +48,7 @@ int newdog(dogtype my_type){
 	if (my_type == DA) {
 
 		// CV stuff, add in assertions
+		// Check errors after every pthread function call
 		dogdone(my_type);
 	}
 	else if (my_type == DB) {
@@ -61,7 +62,7 @@ int newdog(dogtype my_type){
 		dogdone(my_type);
 	}
 
-	return EXIT_SUCCESS;;
+	return EXIT_SUCCESS;
 }
 
 int dogdone(dogtype my_type) {
@@ -83,5 +84,12 @@ int dogdone(dogtype my_type) {
 }
 
 int dogwash_done(void) {
+
+	/* Destroy the current mutex and condition variables */
+	if (pthread_mutex_destroy(&m) != 0)
+		return EXIT_FAILURE;
+
+	if (pthread_cond_destroy(&c) != 0)
+		return EXIT_FAILURE;
 	return 0;
 }
