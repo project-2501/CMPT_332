@@ -116,7 +116,7 @@ int newdog(dogtype my_type){
     if (pthread_mutex_unlock(&m) != 0)
         return EXIT_FAILURE;
     // wait for some time while doing wash
-    //usleep(5000);
+    usleep(5000);
 	dogdone(my_type);
     return EXIT_SUCCESS;
 }
@@ -139,7 +139,7 @@ int dogdone(dogtype my_type) {
             if(B_waiting > 0)
                 turn = turn_B;
         }
-        else if(A_waiting == 0 && B_waiting > 0)
+        if(A_waiting == 0 && B_waiting > 0)
             turn = turn_B;
         else if(A_waiting == 0 && B_waiting == 0)
             turn = turn_any;
@@ -155,8 +155,8 @@ int dogdone(dogtype my_type) {
             if(A_waiting > 0)
                 turn = turn_A;
         }
-        else if(B_waiting == 0 && A_waiting > 0)
-            turn = turn_B;
+        if(B_waiting == 0 && A_waiting > 0)
+            turn = turn_A;
         else if(B_waiting == 0 && A_waiting == 0)
             turn = turn_any;
 
