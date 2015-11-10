@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "dogwashsynch.h"
 
 /* Static local variables ****************************************************/
@@ -61,7 +62,7 @@ int newdog(dogtype my_type){
     if (pthread_mutex_lock(&m) != 0)
         return EXIT_FAILURE;
 
-	printf("%lu - dog of type %d started\n", pthread_self(), my_type);
+	printf("%lu - dog of type %d waiting\n", pthread_self(), my_type);
 
 	if (my_type == DA) {
 
@@ -72,6 +73,9 @@ int newdog(dogtype my_type){
         while((turn != turn_A) || (bays_in_use == num_bays) || (B_washing > 0))
             if (pthread_cond_wait(&c, &m) != 0)
                 return EXIT_FAILURE;
+            if (turn == turn_any)
+                turn = turn_A;
+        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         A_waiting--;
         bays_in_use++;
@@ -88,6 +92,9 @@ int newdog(dogtype my_type){
         while((turn != turn_B) || (bays_in_use == num_bays) || (A_washing > 0))
             if (pthread_cond_wait(&c, &m) != 0)
                 return EXIT_FAILURE;
+            if (turn == turn_any)
+                turn = turn_B;
+        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         B_waiting--;
         bays_in_use++;
@@ -100,6 +107,7 @@ int newdog(dogtype my_type){
         while(bays_in_use == num_bays)
             if (pthread_cond_wait(&c, &m) != 0)
                 return EXIT_FAILURE;
+        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         bays_in_use++;
 
@@ -108,6 +116,7 @@ int newdog(dogtype my_type){
     if (pthread_mutex_unlock(&m) != 0)
         return EXIT_FAILURE;
     // wait for some time while doing wash
+    //usleep(5000);
 	dogdone(my_type);
     return EXIT_SUCCESS;
 }
