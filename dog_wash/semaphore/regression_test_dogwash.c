@@ -1,12 +1,15 @@
 /*
-* File:   test_dogwash.c
+* File:   regression_test_dogwash.c
 * Class:  CMPT 332 Assignment 3
 * Author: Kyle and Taran
 * Date:   November 03 2015
 *
-* Description: Test program for the dogwash synchronization problem. User
-*              must provide command line arguments that specify the number
-*              of bays to use and the number of each kind of dog.
+* Description: Manages regression tests that were shown to work using
+*              test_dogwash.c. Once a scenario is tested and shown to work
+*              correctly using test_dogwash.c, add the test scenario in here
+*              so that a range of unit tests can be run to make sure that 
+*              implementation tweaks don't break old test cases. 
+*
 */
 
 #include <stdio.h>
@@ -14,70 +17,90 @@
 #include <pthread.h>
 #include "dogwashsynch.h"
 
+/* Local function declarations */
+static int unit_test_N(int num_bays, int num_DA, int num_DB, int num_DO);
 static pthread_t *create_dogs(int num_DA, int num_DB, int num_DO);
+static int run_unit_tests(void);
 
+/* Main test program **********************************************************/
 int main(int argc, char *argv[]) {
 
-	int num_bays, num_DA, num_DB, num_DO, total;
-	pthread_t *dogs = NULL;  /* Pointer to array of dog pthreads */
-
-	/* Take one command line arguments ***************************************/
-	if (argc < 5) {
-		fprintf(stderr,"Usage: ./test_dogwash num_bays num_DA num_DB num_DO\n");
+	if (run_unit_tests() > 0) {
+		fprintf(stderr, "Error: regression test failed\n");
 		return EXIT_FAILURE;
 	}
-	else {
-		/* Assign the simulation parameters */
-		num_bays = atoi(argv[1]);
-		num_DA   = atoi(argv[2]);
-		num_DB   = atoi(argv[3]);
-		num_DO   = atoi(argv[4]);
-		total  = num_DA + num_DB + num_DO;
+
+	printf("All unit tests completed successfully!\n");
+	return EXIT_SUCCESS;
+}
+
+/* Local function implementations ********************************************/
+
+/* Description: Run all of the unit tests, report which (if any) failed
+*
+*/
+static int 
+run_unit_tests(void) {
+	int result = 0;
+
+	/* 3 DA's competing for single bay */
+	if (unit_test_N(1,3,0,0) == EXIT_FAILURE) {
+		fprintf(stderr, "Unit Test %d failed\n", 1);
+		result++;
 	}
 
-	/* Initialize the dogwash *************************************************/
+	/* 2 DA's and 2 DB's competing for 1 bays */
+	if (unit_test_N(1,2,2,0) == EXIT_FAILURE) {
+		fprintf(stderr, "Unit Test %d failed\n", 2);
+		result++;
+	}
+
+	return result;
+}
+
+/*
+ * Descriptions: General test function, pass in system parameters to create
+ *               desired unit test.
+ */
+static int unit_test_N(int num_bays, int num_DA, int num_DB, int num_DO) {
+
+	int total  = num_DA + num_DB + num_DO;
+	pthread_t *dogs;
+
 	if (dogwash_init(num_bays) == -1) {
-		fprintf(stderr, "Error: could not initialize dog wash\n");
+		fprintf(stderr, "Error - UT1: could not initialize dog wash\n");
 		return EXIT_FAILURE;
 	}
-	else 
-		printf("Initialized DogWash - Bays: %d\n", num_bays);
 
-	/* Create some 'dog' threads **********************************************/
+	/* Create a variety of dogs here */
 	dogs = create_dogs(num_DA, num_DB, num_DO);
-	if (dogs == NULL) {
-		fprintf(stderr, "Error: could not create the dogs\n");
+	if (dogs == NULL) { 
+		fprintf(stderr, "Error - UT1: could not create dogs\n");
 		return EXIT_FAILURE;
 	}
 
-	/* Wait for all the threads to exit */
-	void *retval;
+	/* Join the dog threads as they complete */
 	for (int i = 0; i < total; i++) {
-		if(pthread_join(dogs[i], &retval) != 0) {
+		if(pthread_join(dogs[i], NULL) != 0) {
 			fprintf(stderr, "Test Error: could not join thread\n");
 			return EXIT_FAILURE;
 		}
 	}
-	
-	printf("%d dog threads exited sucessfully\n", total);
 
-	/* Tear down the system ***************************************************/
+	/* Clean up the simulation */
 	if (dogwash_done() == -1) {
-		fprintf(stderr, "Error: could not shutdown dog wash\n");
+		fprintf(stderr, "Error - UT1: could not shutdown dog wash\n");
 		return EXIT_FAILURE;
 	}
-	else
-		printf("Shutdown DogWash\n");
 
-	/* Free memory pointed to by dogs */
+	/* Free the memory allocated by create_dogs() */
 	free(dogs);
-
 	return EXIT_SUCCESS;
 }
 
 /* Description: Creates a range of 'dog' pthreads. Can pass in 
 *               a varying amount of different dog types to compete for a 
-*               bay in the dogwash. Threads created with default attributes.
+*               bay in the dogwash. 
 *  Inputs:
 *   int num_DA - the number of DA dogs to create
 *   int num_DB - the number of DB dogs to create
@@ -127,4 +150,3 @@ create_dogs(int num_DA, int num_DB, int num_DO) {
 	}
 	return dogs;
 }
-

@@ -39,7 +39,7 @@ int dogwash_init(int numbays);
 *  Return:
 *   0 on success, -1 on failure
 */
-int newdog(dogtype dog);
+int newdog(dogtype my_type);
 
 /* Description: Called by thread when it is done using a wash bay 
 *  Inputs:
@@ -48,7 +48,7 @@ int newdog(dogtype dog);
 *  Return:
 *   0 on success, -1 on failure
 */
-int dogdone(dogtype dog);
+int dogdone(dogtype my_type);
 
 /* Description: Perform cleanup operations, reset shared variables
 *  Inputs:
