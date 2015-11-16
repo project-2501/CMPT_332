@@ -59,6 +59,7 @@ int dogwash_init(int numbays) {
 
 int newdog(dogtype my_type){
 
+    // Obtain lock
     if (pthread_mutex_lock(&m) != 0)
         return -1;
 
@@ -68,13 +69,15 @@ int newdog(dogtype my_type){
             turn = turn_A;  // can take a bay immediately without waiting
         A_waiting++;
 
+        // wait until all necessary conditions are satisified
         while((turn != turn_A) || (bays_in_use == num_bays) || (B_washing > 0)) {
             if (pthread_cond_wait(&c, &m) != 0)
                 return -1;
             if (turn == turn_any)
                 turn = turn_A;
         }
-        // secure a bay
+
+        // secure a bay and update state variables
         A_waiting--;
         bays_in_use++;
         A_count++;
@@ -87,13 +90,15 @@ int newdog(dogtype my_type){
             turn = turn_B;  // can take a bay immediately without waiting
         B_waiting++;
 
+        // wait until all necessary conditions are satisfied
         while((turn != turn_B) || (bays_in_use == num_bays) || (A_washing > 0)) {
             if (pthread_cond_wait(&c, &m) != 0)
                 return -1;
             if (turn == turn_any)
                 turn = turn_B;
         }
-        // secure a bay
+
+        // secure a bay and update state variables
         B_waiting--;
         bays_in_use++;
         B_count++;
@@ -102,18 +107,20 @@ int newdog(dogtype my_type){
 	}
 	else { /* my_type == DO */
 
+        // wait for an open bay
         while(bays_in_use == num_bays) {
             if (pthread_cond_wait(&c, &m) != 0)
                 return -1;
         }
-        // secure a bay
+
+        // secure a bay and update system
         bays_in_use++;
 
 	}
 
+    // release lock
     if (pthread_mutex_unlock(&m) != 0)
         return -1;
-    
     return 0;
 }
 
@@ -126,9 +133,12 @@ int dogdone(dogtype my_type) {
 
 	if (my_type == DA) {
 
+        // update state variables
         A_washing--;
         bays_in_use--;
 
+        // let DBs get a turn if the number of consecutive DAs in a row
+        // exceeds thresh
         if(A_count >= thresh) {
             A_count = 0;
             if(B_waiting > 0)
@@ -142,9 +152,12 @@ int dogdone(dogtype my_type) {
 	}
 	else if (my_type == DB) {
 
+        // update state variables
         B_washing--;
         bays_in_use--;
 
+        // let DAs get a turn if the number of consecutive DBs in a row
+        // exceeds thresh
         if(B_count >= thresh) {
             B_count = 0;
             if(A_waiting > 0)
@@ -158,14 +171,17 @@ int dogdone(dogtype my_type) {
 	}
 	else { /* my_type == DO */
 
+        // update system state
         bays_in_use--;
 
 	}
 
+    // signal all waiting dogs to check their conditions for entering a bay
     if (pthread_cond_broadcast(&c) != 0)
         return -1;
     if (pthread_mutex_unlock(&m) != 0)
         return -1;
+
 	return 0;
 }
 

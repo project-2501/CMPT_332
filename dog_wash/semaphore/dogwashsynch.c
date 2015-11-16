@@ -34,6 +34,9 @@ static sem_t dogBSwitch;        /* Binary sem for modifying B state variables*/
 static sem_t baysAvail;         /* > 0 if there is a bay available */
 static sem_t turnstile;         /* Prevent starvation of A or B dogs */
 
+static sem_t state_mutex;
+static int turnstileActive;
+
 typedef enum {turn_any, turn_A, turn_B} dog_turn;   /* Which type of dog is  */
 static volatile dog_turn turn;                      /* allowed into a bay?   */
 
@@ -51,6 +54,7 @@ int dogwash_init(int numbays) {
     thresh = numbays;
 	num_bays = numbays;
     turn = turn_any;
+    turnstileActive = 0;
 
 	/* (Re)Initialize NOTE: have to do this dynamically */
 	if (sem_init(&noAorB, 0, 1) != 0) {
@@ -69,8 +73,12 @@ int dogwash_init(int numbays) {
 		return -1;
     }
 
-	if (sem_init(&turnstile, 0, numbays) != 0) {
+	if (sem_init(&turnstile, 0, 1) != 0) {
 		return -1;
+    }
+
+    if (sem_init(&state_mutex, 0, 1) != 0) {
+        return -1;
     }
 
 	return 0;
@@ -80,8 +88,13 @@ int newdog(dogtype my_type){
 
 	if (my_type == DA) {
 
+        int forced = 0;
+
+        if (turnstileActive == 1){
         if (sem_wait(&turnstile) != 0) {
             return -1;
+        }
+        forced = 1;
         }
 
         if (sem_wait(&dogASwitch) != 0) {
@@ -93,12 +106,16 @@ int newdog(dogtype my_type){
                 return -1;
             }
         }
+
         if (sem_post(&dogASwitch) != 0) {
             return -1;
         }
 
+        if (forced == 1) {
         if (sem_post(&turnstile) != 0) {
             return -1;
+        }
+        forced = 0;
         }
 
         if (sem_wait(&baysAvail) != 0) {
@@ -108,8 +125,13 @@ int newdog(dogtype my_type){
 	}
 	else if (my_type == DB) {
 
+        int forced = 0;
+
+        if (turnstileActive == 1) {
         if (sem_wait(&turnstile) != 0) {
             return -1;
+        }
+        forced = 1;
         }
 
         if (sem_wait(&dogBSwitch) != 0) {
@@ -125,8 +147,11 @@ int newdog(dogtype my_type){
             return -1;
         }
 
+        if (forced == 1) {
         if (sem_post(&turnstile) != 0) {
             return -1;
+        }
+        forced = 0;
         }
 
         if (sem_wait(&baysAvail) != 0) {
@@ -157,7 +182,23 @@ int dogdone(dogtype my_type) {
         if (sem_wait(&dogASwitch) != 0) {
             return -1;
         }
+        if (sem_wait(&state_mutex) != 0) {
+            return -1;
+        }
         A_washing -= 1;
+        A_count += 1;
+        if (A_count >= thresh) {
+            turnstileActive = 1;
+            printf("A turnstile on\n");
+        }
+        if (B_count >= thresh) {
+            turnstileActive = 0;
+            printf("A turnstile off\n");
+            B_count = 0;
+        }
+        if (sem_post(&state_mutex) != 0) {
+            return -1;
+        }
         if (A_washing == 0) {
             if (sem_post(&noAorB) != 0) {
                 return -1;
@@ -176,7 +217,23 @@ int dogdone(dogtype my_type) {
         if (sem_wait(&dogBSwitch) != 0) {
             return -1;
         }
+        if (sem_wait(&state_mutex) != 0) {
+            return -1;
+        }
         B_washing -= 1;
+        B_count += 1;
+        if (B_count >= thresh) {
+            turnstileActive = 1;
+            printf("B turnstile on\n");
+        }
+        if (A_count >= thresh) {
+            turnstileActive = 0;
+            printf("B turnstile off\n");
+            A_count = 0;
+        }
+        if (sem_post(&state_mutex) != 0) {
+            return -1;
+        }
         if (B_washing == 0) {
             if (sem_post(&noAorB) != 0) {
                 return -1;
@@ -221,5 +278,9 @@ int dogwash_done(void) {
 		return -1;
     }
 	
+    if (sem_destroy(&state_mutex) != 0) {
+        return -1;
+    }
+
     return 0;
 }

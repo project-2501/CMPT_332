@@ -164,6 +164,7 @@ static int unit_test_alt(int num_bays, int num_each) {
 		        return EXIT_FAILURE;
 		    }
         }
+        usleep(100000);
 	}
 
     /* Join the dog threads as they complete */
@@ -249,9 +250,9 @@ static int dog(dogtype mytype) {
     printf("%lu - dog of type %d entering bay\n", pthread_self(), mytype);
     // simulate time spent washing dog
     sleep(1);
+    printf("%lu - dog of type %d is done washing\n", pthread_self(), mytype);
     if (dogdone(mytype) != 0) {
         return EXIT_FAILURE;
     }
-    printf("%lu - dog of type %d is done washing\n", pthread_self(), mytype);
     return EXIT_SUCCESS;
 }

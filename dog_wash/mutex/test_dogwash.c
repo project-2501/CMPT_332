@@ -147,9 +147,9 @@ static int dog(dogtype mytype) {
     printf("%lu - dog of type %d entering bay\n", pthread_self(), mytype);
     // simulate time spent washing dog
     //sleep(2);
+    printf("%lu - dog of type %d is done washing\n", pthread_self(), mytype);
     if (dogdone(mytype) != 0) {
         return EXIT_FAILURE;
     }
-    printf("%lu - dog of type %d is done washing\n", pthread_self(), mytype);
     return EXIT_SUCCESS;
 }
