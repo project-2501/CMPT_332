@@ -26,8 +26,8 @@ static volatile int B_count;    /* Fairness variable for DB dogs */
 static volatile int thresh;     /* When A_count (or B_count) reaches this value
                                    give DB (DA) dogs a chance to get in */
 static int num_bays;            /* Number of bays in the system */
-static pthread_mutex_t m;
-static pthread_cond_t  c;
+static pthread_mutex_t m;       /* Lock for changing state variables */
+static pthread_cond_t  c;       /* Condition variable */
 
 typedef enum {turn_any, turn_A, turn_B} dog_turn;   /* Which type of dog is  */
 static volatile dog_turn turn;                      /* allowed into a bay?   */
@@ -49,20 +49,18 @@ int dogwash_init(int numbays) {
 
 	/* (Re)Initialize NOTE: have to do this dynamically */
 	if (pthread_mutex_init(&m, NULL) != 0)
-		return EXIT_FAILURE;
+		return -1;
 
 	if (pthread_cond_init(&c, NULL) != 0)
-		return EXIT_FAILURE;
+		return -1;
 
-	return EXIT_SUCCESS;;
+	return 0;
 }
 
 int newdog(dogtype my_type){
 
     if (pthread_mutex_lock(&m) != 0)
-        return EXIT_FAILURE;
-
-	printf("%lu - dog of type %d waiting\n", pthread_self(), my_type);
+        return -1;
 
 	if (my_type == DA) {
 
@@ -72,11 +70,10 @@ int newdog(dogtype my_type){
 
         while((turn != turn_A) || (bays_in_use == num_bays) || (B_washing > 0)) {
             if (pthread_cond_wait(&c, &m) != 0)
-                return EXIT_FAILURE;
+                return -1;
             if (turn == turn_any)
                 turn = turn_A;
         }
-        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         A_waiting--;
         bays_in_use++;
@@ -92,11 +89,10 @@ int newdog(dogtype my_type){
 
         while((turn != turn_B) || (bays_in_use == num_bays) || (A_washing > 0)) {
             if (pthread_cond_wait(&c, &m) != 0)
-                return EXIT_FAILURE;
+                return -1;
             if (turn == turn_any)
                 turn = turn_B;
         }
-        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         B_waiting--;
         bays_in_use++;
@@ -108,29 +104,25 @@ int newdog(dogtype my_type){
 
         while(bays_in_use == num_bays) {
             if (pthread_cond_wait(&c, &m) != 0)
-                return EXIT_FAILURE;
+                return -1;
         }
-        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         bays_in_use++;
 
 	}
 
     if (pthread_mutex_unlock(&m) != 0)
-        return EXIT_FAILURE;
-    // wait for some time while doing wash
-    usleep(5000);
-	dogdone(my_type);
-    return EXIT_SUCCESS;
+        return -1;
+    
+    return 0;
 }
 
 int dogdone(dogtype my_type) {
 
     if (pthread_mutex_lock(&m) != 0)
-        return EXIT_FAILURE;
+        return -1;
 
 	/* Assign type to this dog thread */
-	printf("%lu - dog of type %d is done\n", pthread_self(), my_type);
 
 	if (my_type == DA) {
 
@@ -171,19 +163,19 @@ int dogdone(dogtype my_type) {
 	}
 
     if (pthread_cond_broadcast(&c) != 0)
-        return EXIT_FAILURE;
+        return -1;
     if (pthread_mutex_unlock(&m) != 0)
-        return EXIT_FAILURE;
-	return EXIT_SUCCESS;
+        return -1;
+	return 0;
 }
 
 int dogwash_done(void) {
 
 	/* Destroy the current mutex and condition variables */
 	if (pthread_mutex_destroy(&m) != 0)
-		return EXIT_FAILURE;
+		return -1;
 
 	if (pthread_cond_destroy(&c) != 0)
-		return EXIT_FAILURE;
+		return -1;
 	return 0;
 }

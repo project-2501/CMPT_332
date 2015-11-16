@@ -12,8 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "dogwashsynch.h"
 
+static int dog(dogtype mytype);
 static pthread_t *create_dogs(int num_DA, int num_DB, int num_DO);
 
 int main(int argc, char *argv[]) {
@@ -101,7 +103,7 @@ create_dogs(int num_DA, int num_DB, int num_DO) {
 
 	/* Create the DA dogs */
 	for (int i =0; i < num_DA; i++) {
-		if(pthread_create(&dogs[i], NULL, (void *) (newdog), (void *) DA) != 0){
+		if(pthread_create(&dogs[i], NULL, (void *) (dog), (void *) DA) != 0){
 			/* Error Occurred */
 			free(dogs);
 			return NULL;
@@ -110,7 +112,7 @@ create_dogs(int num_DA, int num_DB, int num_DO) {
 
 	/* Create the DB dogs */
 	for (int i = num_DA; i < (num_DA + num_DB); i++) {
-		if(pthread_create(&dogs[i], NULL, (void *) newdog, (void *) DB) != 0){
+		if(pthread_create(&dogs[i], NULL, (void *) dog, (void *) DB) != 0){
 			/* Error Occurred */
 			free(dogs);
 			return NULL;
@@ -119,7 +121,7 @@ create_dogs(int num_DA, int num_DB, int num_DO) {
 
 	/* Create the DC dogs */
 	for (int i = (num_DA + num_DB); i < total; i++) {
-		if(pthread_create(&dogs[i], NULL, (void *) newdog, (void *) DO) != 0){
+		if(pthread_create(&dogs[i], NULL, (void *) dog, (void *) DO) != 0){
 			/* Error Occurred */
 			free(dogs);
 			return NULL;
@@ -128,3 +130,26 @@ create_dogs(int num_DA, int num_DB, int num_DO) {
 	return dogs;
 }
 
+/* Description: Runs a dog through the wash.
+* 
+*  Inputs:
+*   int mytype - the type of dog (DA, DB, or DO)
+*
+*  Return:
+*   0 if successful
+*   -1 otherwise
+*/
+static int dog(dogtype mytype) {
+    printf("%lu - dog of type %d waiting for bay\n", pthread_self(), mytype);
+    if (newdog(mytype) != 0 ) {
+        return EXIT_FAILURE;
+    }
+    printf("%lu - dog of type %d entering bay\n", pthread_self(), mytype);
+    // simulate time spent washing dog
+    //sleep(2);
+    if (dogdone(mytype) != 0) {
+        return EXIT_FAILURE;
+    }
+    printf("%lu - dog of type %d is done washing\n", pthread_self(), mytype);
+    return EXIT_SUCCESS;
+}

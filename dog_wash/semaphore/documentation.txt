@@ -1,0 +1,31 @@
+--------------------------------------------------------------------------------
+CMPT 332 Assignment 3
+PART C Documentation
+Authors: Taran Warnock and Kyle LeBlanc
+--------------------------------------------------------------------------------
+
+Work log available on our Github repo:
+https://github.com/project-2501/CMPT_332.git
+
+-> Building instructions:
+    Run make in the project directory
+    $> make
+
+    Run the test program
+    $> ./regression_test_dogwash
+
+-> Design Process:
+    The use of semaphores in Part C was based on the Unisex Bathroom problem
+    described in Downey's Little Book of Semaphores (pg. 170, ver 2.1.5).
+
+-> Design Choices:
+
+
+-> Implementation:
+
+
+-> Testing:
+
+
+-> Limitations:
+
