@@ -70,11 +70,12 @@ int newdog(dogtype my_type){
             turn = turn_A;  // can take a bay immediately without waiting
         A_waiting++;
 
-        while((turn != turn_A) || (bays_in_use == num_bays) || (B_washing > 0))
+        while((turn != turn_A) || (bays_in_use == num_bays) || (B_washing > 0)) {
             if (pthread_cond_wait(&c, &m) != 0)
                 return EXIT_FAILURE;
             if (turn == turn_any)
                 turn = turn_A;
+        }
         printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         A_waiting--;
@@ -89,11 +90,12 @@ int newdog(dogtype my_type){
             turn = turn_B;  // can take a bay immediately without waiting
         B_waiting++;
 
-        while((turn != turn_B) || (bays_in_use == num_bays) || (A_washing > 0))
+        while((turn != turn_B) || (bays_in_use == num_bays) || (A_washing > 0)) {
             if (pthread_cond_wait(&c, &m) != 0)
                 return EXIT_FAILURE;
             if (turn == turn_any)
                 turn = turn_B;
+        }
         printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         B_waiting--;
@@ -104,9 +106,10 @@ int newdog(dogtype my_type){
 	}
 	else { /* my_type == DO */
 
-        while(bays_in_use == num_bays)
+        while(bays_in_use == num_bays) {
             if (pthread_cond_wait(&c, &m) != 0)
                 return EXIT_FAILURE;
+        }
         printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
         // secure a bay
         bays_in_use++;

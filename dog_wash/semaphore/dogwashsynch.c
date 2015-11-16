@@ -27,8 +27,17 @@ static volatile int B_count;    /* Fairness variable for DB dogs */
 static volatile int thresh;     /* When A_count (or B_count) reaches this value
                                    give DB (DA) dogs a chance to get in */
 static int num_bays;            /* Number of bays in the system */
-static sem_t m;                 /* Binary Semaphore to act as a lock */
-static sem_t c;                 /* condition variable */
+
+
+static volatile int A_counter;
+static volatile int B_counter;
+
+static sem_t empty;
+static sem_t dogASwitch;
+static sem_t dogBSwitch;
+static sem_t dogAMultiplex;
+static sem_t dogBMultiplex;
+static sem_t turnstile;
 
 typedef enum {turn_any, turn_A, turn_B} dog_turn;   /* Which type of dog is  */
 static volatile dog_turn turn;                      /* allowed into a bay?   */
@@ -48,14 +57,37 @@ int dogwash_init(int numbays) {
 	num_bays = numbays;
     turn = turn_any;
 
+    A_counter = 0;
+    B_counter = 0;
+
 	/* (Re)Initialize NOTE: have to do this dynamically */
-	if (sem_init(&m, 0, 1) != 0) {
+	if (sem_init(&empty, 0, 1) != 0) {
         printf("%lu - sem_init(&m) failure\n", pthread_self());
 		return EXIT_FAILURE;
     }
 
-	if (sem_init(&c, 0, numbays) != 0) {
+	if (sem_init(&dogASwitch, 0, 1) != 0) {
         printf("%lu - sem_init(&c) failure\n", pthread_self());
+		return EXIT_FAILURE;
+    }
+
+	if (sem_init(&dogBSwitch, 0, 1) != 0) {
+        printf("%lu - sem_init(&m) failure\n", pthread_self());
+		return EXIT_FAILURE;
+    }
+
+	if (sem_init(&dogAMultiplex, 0, numbays) != 0) {
+        printf("%lu - sem_init(&m) failure\n", pthread_self());
+		return EXIT_FAILURE;
+    }
+
+	if (sem_init(&dogBMultiplex, 0, numbays) != 0) {
+        printf("%lu - sem_init(&m) failure\n", pthread_self());
+		return EXIT_FAILURE;
+    }
+
+	if (sem_init(&turnstile, 0, 1) != 0) {
+        printf("%lu - sem_init(&m) failure\n", pthread_self());
 		return EXIT_FAILURE;
     }
 
@@ -64,72 +96,72 @@ int dogwash_init(int numbays) {
 
 int newdog(dogtype my_type){
 
-    if (sem_wait(&m) != 0) {
-        printf("%lu - sem_wait(&m) failure\n", pthread_self());
-        return EXIT_FAILURE;
-    }
-
 	printf("%lu - dog of type %d waiting\n", pthread_self(), my_type);
 
 	if (my_type == DA) {
 
-        if(turn == turn_any)
-            turn = turn_A;  // can take a bay immediately without waiting
-        A_waiting++;
+        if (sem_wait(&turnstile) != 0) {
+            return EXIT_FAILURE;
+        }
 
-        while((turn != turn_A) || (bays_in_use == num_bays) || (B_washing > 0))
-            if (sem_wait(&c) != 0) {
-                printf("%lu - sem_wait(&c) failure\n", pthread_self());
+        if (sem_wait(&dogASwitch) != 0) {
+            return EXIT_FAILURE;
+        }
+        A_counter += 1;
+        if (A_counter == 1) {
+            if (sem_wait(&empty) != 0) {
                 return EXIT_FAILURE;
             }
-            if (turn == turn_any)
-                turn = turn_A;
-        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
-        // secure a bay
-        A_waiting--;
-        bays_in_use++;
-        A_count++;
-        A_washing++;
+        }
+        if (sem_post(&dogASwitch) != 0) {
+            return EXIT_FAILURE;
+        }
+
+        if (sem_post(&turnstile) != 0) {
+            return EXIT_FAILURE;
+        }
+
+        if (sem_wait(&dogAMultiplex) != 0) {
+            return EXIT_FAILURE;
+        }
+        // dog wash code
 
 	}
 	else if (my_type == DB) {
 
-        if(turn == turn_any)
-            turn = turn_B;  // can take a bay immediately without waiting
-        B_waiting++;
+        if (sem_wait(&turnstile) != 0) {
+            return EXIT_FAILURE;
+        }
 
-        while((turn != turn_B) || (bays_in_use == num_bays) || (A_washing > 0))
-            if (sem_wait(&c) != 0) {
-                printf("%lu - sem_wait(&c) failure\n", pthread_self());
+        if (sem_wait(&dogBSwitch) != 0) {
+            return EXIT_FAILURE;
+        }
+        B_counter += 1;
+        if (B_counter == 1) {
+            if (sem_wait(&empty) != 0) {
                 return EXIT_FAILURE;
             }
-            if (turn == turn_any)
-                turn = turn_B;
-        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
-        // secure a bay
-        B_waiting--;
-        bays_in_use++;
-        B_count++;
-        B_washing++;
+        }
+        if (sem_post(&dogBSwitch) != 0) {
+            return EXIT_FAILURE;
+        }
+
+        if (sem_post(&turnstile) != 0) {
+            return EXIT_FAILURE;
+        }
+
+        if (sem_wait(&dogBMultiplex) != 0) {
+            return EXIT_FAILURE;
+        }
 
 	}
 	else { /* my_type == DO */
 
-        while(bays_in_use == num_bays)
-            if (sem_wait(&c) != 0) {
-                printf("%lu - sem_wait(&c) failure\n", pthread_self());
-                return EXIT_FAILURE;
-            }
-        printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
-        // secure a bay
-        bays_in_use++;
+        
 
 	}
 
-    if (sem_post(&m) != 0) {
-        printf("%lu - sem_post(&m) failure\n", pthread_self());
-        return EXIT_FAILURE;
-    }
+    printf("%lu - dog of type %d entered bay\n", pthread_self(), my_type);
     // wait for some time while doing wash
     usleep(5000);
 	dogdone(my_type);
@@ -138,74 +170,88 @@ int newdog(dogtype my_type){
 
 int dogdone(dogtype my_type) {
 
-    if (sem_wait(&m) != 0) {
-        printf("%lu - sem_wait(&m) failure\n", pthread_self());
-        return EXIT_FAILURE;
-    }
-
 	/* Assign type to this dog thread */
 	printf("%lu - dog of type %d is done\n", pthread_self(), my_type);
 
 	if (my_type == DA) {
 
-        A_washing--;
-        bays_in_use--;
-
-        if(A_count >= thresh) {
-            A_count = 0;
-            if(B_waiting > 0)
-                turn = turn_B;
+        if (sem_post(&dogAMultiplex) != 0) {
+            return EXIT_FAILURE;
         }
-        if(A_waiting == 0 && B_waiting > 0)
-            turn = turn_B;
-        else if(A_waiting == 0 && B_waiting == 0)
-            turn = turn_any;
+        if (sem_wait(&dogASwitch) != 0) {
+            return EXIT_FAILURE;
+        }
+        A_counter -= 1;
+        if (A_counter == 0) {
+            if (sem_post(&empty) != 0) {
+                return EXIT_FAILURE;
+            }
+        }
+        if (sem_post(&dogASwitch) != 0) {
+            return EXIT_FAILURE;
+        }
 
 	}
 	else if (my_type == DB) {
 
-        B_washing--;
-        bays_in_use--;
-
-        if(B_count >= thresh) {
-            B_count = 0;
-            if(A_waiting > 0)
-                turn = turn_A;
+        if (sem_post(&dogBMultiplex) != 0) {
+            return EXIT_FAILURE;
         }
-        if(B_waiting == 0 && A_waiting > 0)
-            turn = turn_A;
-        else if(B_waiting == 0 && A_waiting == 0)
-            turn = turn_any;
+        if (sem_wait(&dogBSwitch) != 0) {
+            return EXIT_FAILURE;
+        }
+        B_counter -= 1;
+        if (B_counter == 0) {
+            if (sem_post(&empty) != 0) {
+                return EXIT_FAILURE;
+            }
+        }
+        if (sem_post(&dogBSwitch) != 0) {
+            return EXIT_FAILURE;
+        }
 
 	}
 	else { /* my_type == DO */
 
-        bays_in_use--;
+
 
 	}
 
-    if (sem_post(&c) != 0) {
-        printf("%lu - sem_post(&c) failure\n", pthread_self());
-        return EXIT_FAILURE;
-    }
-    if (sem_post(&m) != 0) {
-        printf("%lu - sem_post(&m) failure\n", pthread_self());
-        return EXIT_FAILURE;
-    }
 	return EXIT_SUCCESS;
 }
 
 int dogwash_done(void) {
 
 	/* Destroy the current mutex and condition variables */
-	if (sem_destroy(&m) != 0) {
+	if (sem_destroy(&empty) != 0) {
         printf("%lu - sem_destroy(&m) failure\n", pthread_self());
 		return EXIT_FAILURE;
     }
 
-	if (sem_destroy(&c) != 0) {
-        printf("%lu - sem_destroy(&c) failure\n", pthread_self());
+	if (sem_destroy(&dogASwitch) != 0) {
+        printf("%lu - sem_destroy(&m) failure\n", pthread_self());
 		return EXIT_FAILURE;
     }
-	return 0;
+	
+    if (sem_destroy(&dogBSwitch) != 0) {
+        printf("%lu - sem_destroy(&m) failure\n", pthread_self());
+		return EXIT_FAILURE;
+    }
+	
+    if (sem_destroy(&dogAMultiplex) != 0) {
+        printf("%lu - sem_destroy(&m) failure\n", pthread_self());
+		return EXIT_FAILURE;
+    }
+	
+    if (sem_destroy(&dogBMultiplex) != 0) {
+        printf("%lu - sem_destroy(&m) failure\n", pthread_self());
+		return EXIT_FAILURE;
+    }
+	
+    if (sem_destroy(&turnstile) != 0) {
+        printf("%lu - sem_destroy(&m) failure\n", pthread_self());
+		return EXIT_FAILURE;
+    }
+	
+    return 0;
 }
