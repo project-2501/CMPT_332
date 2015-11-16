@@ -65,11 +65,11 @@ int dogwash_init(int numbays) {
 		return -1;
     }
 
-	if (sem_init(&multiplex, 0, numbays) != 0) {
+	if (sem_init(&baysAvail, 0, numbays) != 0) {
 		return -1;
     }
 
-	if (sem_init(&turnstile, 0, 1) != 0) {
+	if (sem_init(&turnstile, 0, numbays) != 0) {
 		return -1;
     }
 
@@ -101,7 +101,7 @@ int newdog(dogtype my_type){
             return -1;
         }
 
-        if (sem_wait(&multiplex) != 0) {
+        if (sem_wait(&baysAvail) != 0) {
             return -1;
         }
 
@@ -129,14 +129,14 @@ int newdog(dogtype my_type){
             return -1;
         }
 
-        if (sem_wait(&multiplex) != 0) {
+        if (sem_wait(&baysAvail) != 0) {
             return -1;
         }
 
 	}
 	else { /* my_type == DO */
 
-        if (sem_wait(&multiplex) != 0) {
+        if (sem_wait(&baysAvail) != 0) {
             return -1;
         }        
 
@@ -151,7 +151,7 @@ int dogdone(dogtype my_type) {
 
 	if (my_type == DA) {
 
-        if (sem_post(&multiplex) != 0) {
+        if (sem_post(&baysAvail) != 0) {
             return -1;
         }
         if (sem_wait(&dogASwitch) != 0) {
@@ -170,7 +170,7 @@ int dogdone(dogtype my_type) {
 	}
 	else if (my_type == DB) {
 
-        if (sem_post(&multiplex) != 0) {
+        if (sem_post(&baysAvail) != 0) {
             return -1;
         }
         if (sem_wait(&dogBSwitch) != 0) {
@@ -189,7 +189,7 @@ int dogdone(dogtype my_type) {
 	}
 	else { /* my_type == DO */
 
-        if (sem_post(&multiplex) != 0) {
+        if (sem_post(&baysAvail) != 0) {
             return -1;
         }
 
@@ -213,7 +213,7 @@ int dogwash_done(void) {
 		return -1;
     }
 	
-    if (sem_destroy(&multiplex) != 0) {
+    if (sem_destroy(&baysAvail) != 0) {
 		return -1;
     }
 	
