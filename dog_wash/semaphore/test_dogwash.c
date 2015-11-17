@@ -133,23 +133,28 @@ create_dogs(int num_DA, int num_DB, int num_DO) {
 /* Description: Runs a dog through the wash.
 * 
 *  Inputs:
-*   int mytype - the type of dog (DA, DB, or DO)
+*   dogtype mytype - the type of dog (DA, DB, or DO)
 *
 *  Return:
-*   0 if successful
-*   -1 otherwise
+*   EXIT_SUCCESS if successful
+*   EXIT_FAILURE otherwise
 */
 static int dog(dogtype mytype) {
+    /* Wait for a bay */
     printf("%lu - dog of type %d waiting for bay\n", pthread_self(), mytype);
     if (newdog(mytype) != 0 ) {
         return EXIT_FAILURE;
     }
+
+    /* Enter bay and take 1 second to wash dog */
     printf("%lu - dog of type %d entering bay\n", pthread_self(), mytype);
-    // simulate time spent washing dog
-    //sleep(2);
+    sleep(1);
+
+    /* Leave wash bay */
     printf("%lu - dog of type %d is done washing\n", pthread_self(), mytype);
     if (dogdone(mytype) != 0) {
         return EXIT_FAILURE;
     }
+
     return EXIT_SUCCESS;
 }

@@ -8,23 +8,123 @@ Work log available on our Github repo:
 https://github.com/project-2501/CMPT_332.git
 
 -> Building instructions:
+    
     Run make in the project directory
     $> make
 
     Run the test program
     $> ./regression_test_dogwash
+    Or for a specific number of bays and dogs:
+    $> ./test_dogwash [num_bays] [num_DA] [num_DB] [num_DO]
 
 -> Design Process:
+    
+    We started the design by writing out our algorithm in pseudocode. We tried
+    to consider the many different situations that could occur and came up
+    with a set of state variables that the program would need to keep updated.
 
+    One of these state variables was a turn variable that could be one of
+    three values: turn_A, turn_B, or turn_any. This variable controls the
+    whether A dogs or B dogs are allowed into a wash bay. Initially, the 
+    value of turn is turn_any, meaning that any type of dog could take a
+    bay. The first dog of type A or B to enter the system changes the value
+    of turn to their type (turn_A or turn_B). This variable is used to prevent
+    the opposing dog types from entering the wash at the same time.
+
+    Starvation is prevented by incrementing a variable (count_A and count_B)
+    for type A and type B dogs every time that type of dog gets bay. When this count
+    passes a threshold value, the system will change the turn variable to the
+    other type of dog if any are waiting.  Additionally, if there are no
+    dogs of type A or B waiting, the turn variable is reset to turn_any, so
+    that A or B dogs that might arrive at the wash later do not become locked
+    out.
 
 -> Design Choices:
 
+    One Mutex
+        We determined that a single pthread mutex was necessary for this
+        system. The mutex is obtained by a thread when it enters the newdog
+        or the dogdone function, and is released at the end of each function.
+        The mutex is needed in this functions because they modify state
+        variables that are accessible to all threads in the program. Whenever
+        a thread waits on the condition variable inside one of these
+        functions, the mutex is given up by the waiting thread, allowing other
+        threads to make changes to the system.
+    
+    One Condition Variable
+        Our implementation uses one condition variable. A thead waits on this
+        variable if the conditions necessary for it to be able to take bay
+        are not satisfied. When a dog leaves a bay, it sends a broadcast
+        which wakes up all threads. Each thread then checks its state
+        variables. If their are threads that are able to take a bay now, one
+        of them will be allowed into a bay; every other thread returns to
+        waiting. The use of a broadcast simplifies implementation  because in
+        addition to only requiring one condition variable, it allows the
+        decision of which dogs are eligible to enter a bay to be entirely
+        based on the state variables. 
 
--> Implementation:
-
+    Threshold for A_count and B_count
+        The value of the thresh variable was set the number of wash bays in
+        the system. This value allowed for good utilization of the wash bays
+        before forcing the switch to the other dog type.
 
 -> Testing:
 
+    Our tests are contained in two programs: test_dogwash and
+    regression_test_dogwash. In each test, print statements show
+    when dogs enter the system, when they get a wash bay, and when
+    they finish washing. The thread id is printed with each statement
+    so that an inidividual thread can be tracked through the system if
+    desired.
+
+    test_dogwash was used to quickly test the program when making changes
+    during development. This program takes 4 command line arguments:
+        * number of bays
+        * number of Type A dogs
+        * number of Type B dogs
+        * number of Type O dogs
+    These dogs are sent into the system one immediately after the other.
+
+    regression_test_dogwash.c contains several tests of the same style
+    as test_dogwash but also contains tests that alter the timing of dogs
+    entering the system. The test are described briefly below.
+
+    Test 1
+        Tests 3 Type A dogs competing for a single bay. Tests that the 
+        system only accepts one dog per bay.
+
+    Test 2
+        Tests 1 Type A and 1 Type B dog competing for a single bay. Test
+        shows that A and B dogs cannot be in the system at the same time,
+        even when there are bays free.
+
+    Test 3
+        Tests 2 Type A and 2 Type B dogs competing for 5 bays. Shows how
+        fairness is implemented by flushing the system of one type of dog
+        and allowing the other in. 
+
+    Test 4
+        This test sends an equal number of type A and type B dogs into the
+        system, but alternates between A and B when creating the threads.
+        This changes up the order in which dogs enter the system.
+        Additionally, there is a 0.1 second wait after each thread creation
+        which causes dogs to enter the system at differing times. Since the
+        dogs arrive in alternating types, this would cause poor utilization
+        if the system used a queue-based fairness system; there would only
+        ever be one bay in use. This test shows how our implementation creates 
+        better utilization of the system while still allowing the other type of
+        dog into the system eventually.
+
+    Test 5
+        This is a stress test will a large number (100) of all types of dogs
+        and a small number of bays (5) which serves as a general performance
+        test and allows more chances to expose deadlock bugs due to the large
+        number  of threads. Currently this test is commented out as the output
+        is very large.
 
 -> Limitations:
 
+    The use of a single condition variable and a broadcast signal could have a
+    negative impact on performance because all threads waiting on the
+    condition variable are woken up. A decrease in performance may be
+    observed when the number of threads becomes very large.

@@ -56,25 +56,47 @@ run_unit_tests(void) {
     printf("TEST 1 END\n");
     printf("------------\n");
 
-	/* 2 DA's and 2 DB's competing for 1 bays */
+	/* 1 DA and 1 DB competing for 2 bays */
     printf("------------\n");
 	printf("TEST 2 BEGIN\n");
-    if (unit_test_N(1,2,2,0) == EXIT_FAILURE) {
+    if (unit_test_N(2,1,1,0) == EXIT_FAILURE) {
 		fprintf(stderr, "Unit Test %d failed\n", 2);
-		result++;
+	    result++;
 	}
     printf("TEST 2 END\n");
     printf("------------\n");
 
-    /* DA's and DB's entering in alternating order */
+	/* 5 DA's and 5 DB's competing for 2 bays */
     printf("------------\n");
-    printf("TEST 3 BEGIN\n");
-    if (unit_test_alt(10, 20) == EXIT_FAILURE) {
-        fprintf(stderr, "Unit Test %d failed\n", 3);
-        result++;
-    }
+	printf("TEST 3 BEGIN\n");
+    if (unit_test_N(2,5,5,0) == EXIT_FAILURE) {
+		fprintf(stderr, "Unit Test %d failed\n", 3);
+	    result++;
+	}
     printf("TEST 3 END\n");
     printf("------------\n");
+
+    /* DA's and DB's entering in alternating order */
+    printf("------------\n");
+    printf("TEST 4 BEGIN\n");
+    if (unit_test_alt(10, 20) == EXIT_FAILURE) {
+        fprintf(stderr, "Unit Test %d failed\n", 4);
+        result++;
+    }
+    printf("TEST 4 END\n");
+    printf("------------\n");
+
+    /* Large amound of dogs */
+    /*
+    printf("------------\n");
+    printf("TEST 5 BEGIN\n");
+    if (unit_test_N(5, 100, 100, 100) == EXIT_FAILURE) {
+        fprintf(stderr, "Unit Test %d failed\n", 5);
+        result++;
+    }
+    printf("TEST 5 END\n");
+    printf("------------\n");
+    */
 
 	return result;
 }
@@ -125,7 +147,8 @@ static int unit_test_N(int num_bays, int num_DA, int num_DB, int num_DO) {
 	return EXIT_SUCCESS;
 }
 
-/* This test is to test utilization of the dogwash */
+/* Description: Test utilization of the dogwash by changin the order
+ * in which dogs arrive and their time of arrival.*/
 static int unit_test_alt(int num_bays, int num_each) {
     
     int total = 2 * num_each;
@@ -242,6 +265,8 @@ create_dogs(int num_DA, int num_DB, int num_DO) {
 	return dogs;
 }
 
+/* Description: Sends a dog of type mytype through wash bay system by calling
+ * newdog, then waiting to simulate wash time, then calling dogdone. */
 static int dog(dogtype mytype) {
     printf("%lu - dog of type %d waiting for bay\n", pthread_self(), mytype);
     if (newdog(mytype) != 0 ) {
@@ -249,7 +274,7 @@ static int dog(dogtype mytype) {
     }
     printf("%lu - dog of type %d entering bay\n", pthread_self(), mytype);
     // simulate time spent washing dog
-    sleep(1);
+    usleep(500000);
     printf("%lu - dog of type %d is done washing\n", pthread_self(), mytype);
     if (dogdone(mytype) != 0) {
         return EXIT_FAILURE;

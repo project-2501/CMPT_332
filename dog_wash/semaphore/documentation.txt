@@ -8,24 +8,64 @@ Work log available on our Github repo:
 https://github.com/project-2501/CMPT_332.git
 
 -> Building instructions:
+    
     Run make in the project directory
     $> make
 
-    Run the test program
+    Run the test program:
     $> ./regression_test_dogwash
+    Or for a specific number of bays and of each dog type:
+    $> ./test_dogwash [num_bays] [num_DA] [num_DB] [num_DO]
 
 -> Design Process:
+    
     The use of semaphores in Part C was based on the Unisex Bathroom problem
     described in Downey's Little Book of Semaphores (pg. 170, ver 2.1.5).
+    It uses a semaphore initialized to the capacity of the system which allows
+    prevents dogs from getting a bay when all are in use. A switch semaphore
+    is used by each dog type in order to switch the wash from excepting one
+    type of dog to accepting the other. Starvation is prevented through use of
+    a turnstile semaphore. In the unisex bathroom problem, the turnstile is
+    initialized at 1 so that only 1 thread at a time is allowed past it.
+    In our system, if a type A dog were to get past the turnstile, but there
+    type B dogs in the wash, all dogs would be prevented from getting past
+    the turnstile until the A dog gets a bay. This would result in all type B
+    dogs being flushed from the bays and then A dogs would take over the bay.
+
+    Our design using a turnstile with a larger initial value so that one
+    waiting dog does not shut down the entire system, as this would be poor
+    for the utilization of available bays. 
 
 -> Design Choices:
-
-
--> Implementation:
-
+    
+    5 Semaphores
+        4 Binary Semaphores
+            noAorB - Is 1 when there are no A or B dogs in the wash. The first
+            A or B dog to take a bay decrements it to 0, and the last A or B
+            dog to leave the wash increments it back to 1.
+            dogASwitch - allows type A dogs to claim the wash from type B dogs
+            dogBSwitch - allows type B dogs to claim the wash from type A dogs
+            turnstile - used to prevent starvation
+        1 Other Semaphore
+            baysAvail - Initialized to the number of bays. When it is 0
+            there are no open bays so the thread waits.
 
 -> Testing:
 
+    The same testing programs described in the Part B documentation are used
+    here.
 
 -> Limitations:
+    
+    A consequence of the use of the turnstile semaphore in this implementation
+    is that the fairness of the system is based on when dogs arrive at the
+    wash. Dogs that arrive first get past the turnstile before other dogs.
+    In testing, it seemed that when all of the A dogs arrived before all of
+    the B dogs, all of the A dogs were allowed into the system first. However,
+    test 4 showed that when the dogs arrive in alternating order a good system
+    of fairness is achieved in which sets of A dogs alternate with sets of B
+    dogs in getting wash bays.
 
+    One problem with the turnstile used in this design is that type A dogs
+    could be locked out of the wash for a long time if there are not enough of
+    them to fill up the turnstile.
