@@ -11,3 +11,6 @@ This is Taran and Kyle's repo for CMPT 332.
 
 ##Assignment 3
 * DogWash synchronization problem
+
+##Assignment 4
+* Multicast Messaging Server and Clients
