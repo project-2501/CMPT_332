@@ -93,8 +93,12 @@ static void
 	/* Cast the port number to be used for this thread */
 	long port = (long) p;
 
-	printf("Listening on port: %d\n", (long) p);
+	printf("Listening on port: %ld\n", (long) p);
 	fflush(stdout);
+
+
+    // Add in server socket code                                        TODO
+
 	/* Branch depending on which port was passed in */
 	if (port == send_client_port) {
 
@@ -115,7 +119,7 @@ static void
 *send_client_thread(void *sock_fd) {
 
 	// read text from socket into local buffer
-    // Implement logic from paper design...
+    // Implement logic from paper design...                              TODO
 
 	pthread_exit(NULL);
 }
@@ -129,7 +133,7 @@ static void
 *recv_client_thread(void *sock_fd) {
 
 	// Register into system
-    // Implement logic from paper design...
+    // Implement logic from paper design...                              TODO
 
 	pthread_exit(NULL);
 }
