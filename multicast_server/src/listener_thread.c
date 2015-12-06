@@ -39,6 +39,7 @@ void * listener_thread(void *prt) {
     char s[INET6_ADDRSTRLEN];
     int rv;
 	pthread_t tid;
+	ClientConn cc;
 
 	/* Setup of the addrinfo structure */
     memset(&hints, 0, sizeof hints);
@@ -107,7 +108,13 @@ void * listener_thread(void *prt) {
 
 		/* Launch handler for send client */
 		if ((long) prt == send_client_port) {
-			if( pthread_create(&tid, NULL, send_client_thread, (void*) &new_fd) < 0) {
+
+			/* Build the ClientConn structure */
+			cc.c_addr = strncpy(cc.c_addr, s, INET6_ADDRSTRLEN);
+			cc.c_port = ntohs(((struct sockaddr_in *) &their_addr)->sin_port);
+			cc.fd = new_fd;
+
+			if( pthread_create(&tid, NULL, send_client_thread, (void*) &cc) < 0) {
 				perror("could not create thread");
 			}	
 			pthread_detach(tid);

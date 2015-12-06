@@ -26,11 +26,19 @@ volatile int seq_num;           /* Current queue node sequence number */
 
 static volatile GQueue *msg_q;     /* Global message queue items of type Msg */
 
+/* Message type for placing into msg_q */
 typedef struct {
 	char* msg;  /* Stored message from send client */
 	int   seq;  /* Sequence number for this message */
     int   numC; /* Number of clients to process this message */
 } Msg;
+
+/* Client connection info type to pass to send_client_threads */
+typedef struct {
+	int fd;       /* FD for client connection */
+	char *c_addr; /* Client IP address */
+	unsigned short int c_port;     /* Client port number */
+} ClientConn;
 
 /* Function prototypes ------------------------------------------------------*/
 
@@ -42,11 +50,11 @@ typedef struct {
 void *listener_thread(void *prt);
 
 /* Description: Server thread that handles a send client
-*  Inputs: sock_fd - connected socket to client
+*  Inputs: cc - ClientConn type with client connection information 
 *
 *  Return: none
 */
-void *send_client_thread(void *sock_fd);
+void *send_client_thread(void *cc);
 
 /* Description: Server thread that handles a recv client
 *  Inputs: sock_fd - connected socket to client
