@@ -1,24 +1,14 @@
-# Description: Makefile for Multicast Messaging server
+# Description: Top level Makefile Multicast Server
 #
 # Authors: Taran and Kyle
 # Class:   CMPT 332 - Fall 2015
 
 # Directories to include in the build
-LDLIBS = `pkg-config --libs glib-2.0` -pthread
 
-# Compiler flags
-CFLAGS = -std=c99 -g `pkg-config --cflags glib-2.0` -pedantic -Wall -Wextra \
-		 -Wmissing-prototypes -Wno-sign-compare -Wno-unused-parameter \
-		 -D_GNU_SOURCE 
-
-RM = rm -f
-
-# List of executable files to be built
 EXE = multicast_server send_client recv_client
 
-all: 
-	${MAKE} ${EXE}
+all:
+	cd src; make; mv ${EXE} ..
 
 clean: 
-	${RM} ${EXE} *.o *.a
-
+	${RM} ${EXE} *.o;

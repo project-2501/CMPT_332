@@ -1,0 +1,39 @@
+--------------------------------------------*
+* CMPT 332 Assignment 4                     *
+* File: documentation.txt                   *
+* Authors: Taran Warnock and Kyle LeBlanc   *
+--------------------------------------------*
+
+Work log available in our Github repo:
+https://github.com/project-2501/CMPT_332.git
+
+
+-> Building instructions -----------------------------------------------------*
+
+
+-> Design Process ------------------------------------------------------------*
+
+
+-> Implementation of Multicast Server ----------------------------------------*
+
+
+-> Design Choices ------------------------------------------------------------*
+ 
+
+-> Testing -------------------------------------------------------------------*
+
+
+-> Limitations ---------------------------------------------------------------*
+
+
+-> References ----------------------------------------------------------------*
+
+	To assist with extra knowledge and background with using the UNIX system
+	programming API, we used the course materials, but also the following
+	work to fully understand the idiomatic usage of network programming,
+	threads and Glib2.
+
+	[1] The Linux Programming Interface, Kerrisk 2010
+	[2] http://beej.us/guide/bgnet/output/html/singlepage/bgnet.html
+	[3] https://computing.llnl.gov/tutorials/pthreads/#Joining
+	[4] https://developer.gnome.org/glib/stable/glib-Double-ended-Queues.html
