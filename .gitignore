@@ -5,3 +5,6 @@ test_coalesce
 test_next
 test_dogwash
 regression_test_dogwash
+multicast_server
+send_client
+recv_client
