@@ -29,7 +29,7 @@ GQueue *msg_q;     /* Global message queue items of type Msg */
 
 /* Message type for placing into msg_q */
 typedef struct {
-	char  msg[MAXDATASIZE];  /* Stored message from send client */
+	char *msg;  /* Stored message from send client */
 	int   seq;  /* Sequence number for this message */
     int   numC; /* Number of clients to process this message */
 } Msg;
