@@ -112,7 +112,7 @@ void *send_client_thread(void *cc) {
 static Msg *
 make_Msg(char *m){
 	Msg *message = g_new(Msg, 1);
-    message->msg = strndup(m, MAXDATASIZE + 64);
+    message->msg = strndup(m, MAXMSGSIZE);
 	message->seq  = seq_num;
 	message->numC = num_recv_clients;
 	return message;
