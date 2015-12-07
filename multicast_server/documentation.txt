@@ -7,24 +7,162 @@
 Work log available in our Github repo:
 https://github.com/project-2501/CMPT_332.git
 
+-> Building and Usage Instructions --------------------------------------------*
 
--> Building instructions -----------------------------------------------------*
+In the base project directory, simply type:
 
+$> make
+
+Then it is reccomended to launch 3 or more terminal windows and then launch
+1 instance of the server, and then as many clients as desired.
+
+Then to launch the server:
+
+$> ./multicast_server
+
+Then, the user can launch multiple send and receive clients and connect to
+the server ip address and corresponding port:
+
+$> ./recv_client 127.0.0.1 34000
+$> ./send_client 127.0.0.1 31000
+
+Then, the user can enter messages at the send client prompt. The server 
+terminal window will print the contents of the message queue everytime a new
+message comes in. And of course, the recv clients will print out their received
+broadcast messages.
 
 -> Design Process ------------------------------------------------------------*
 
+Our design began with a long research phase where we came up with a pencil and
+paper design for the program flow, data types, thread processes, shared 
+variables, mutex locks and condition variables that we would require to solve
+the problem.
+
+One of the trickiest aspects of the design that required a lot of careful 
+thought was how to create a working broadcast semantic for the receive 
+clients that would meet the following specs from the assignment:
+
+	1. Receive clients should only get each message once
+	2. Newly connected receive clients should only get new
+       messages (ie. not old ones) 
+
+We modeled the problem as a producer-consumer style problem, but the main
+complication is that it was a 'many consumer' problem, so we had to devise
+a way that each message could be consumed once and only once by each valid
+receive client. This was not going to be possible with pure broadcast 
+type semantics with a condition variable due to the non-determinism of
+which sleeping thread gets woken up to consume a message. What we ended
+up doing was including a sequence number on each message in the queue, and
+each recv_client_thread would keep a local variable of which sequence
+number they are currently at. The message type structure for queue nodes
+is given by the following:
+
+Fig. 1:
+typedef struct {
+	char  msg[MAXDATASIZE];  /* Stored message from send client */
+	int   seq;  /* Sequence number for this message */
+    int   numC; /* Number of clients to process this message */
+} Msg;
+
+As you can see, each message also has a field called 'numC', this is set
+when the message is created to the number of recv clients that are
+connected and ready to receive a message. The numC field is decremented 
+each time a client accesses the head of the queue.Using the 'seq' and 'numC' 
+fields is how our client handler threads are able to be prevented from
+consuming the same message multiple times even though it is entirely possible
+that they could be woken up and access the head node multiple times as 
+broadcast signals are being sent on the 'new_msg' condition variable.
+
+-> Design Choices ------------------------------------------------------------*
+
+We decided to partition the server into two 'listener threads' that listen
+on each respective port, then these listener threads accept client connections
+and subsequently spawn off either a detached 'send_client_thread' or 
+'recv_client_thread' to handle the client connections thereafter.
+
+For storing the messages internally, we decided to use a simple queue data
+structure. We really did not want to re-invent the wheel on this one so we
+chose to use the excellent Glib-2.0 library which has a very robust queue
+implementation called GQueue. Each queue stores a Msg struct as shown in Fig.1
+above. 
+
+Our solution used the following set of shared variables and synchronization
+variables, all access were controlled by a single mutex lock 'q_lock'. These
+comprise the state variables of the server process.
+
+pthread_mutex_t q_lock;     /* Lock for queue and shared vars */
+pthread_cond_t  new_msg;    /* CV broadcasted on when new msg arrives */
+
+volatile int num_recv_clients;  /* Number of connected recv clients */
+volatile int num_msgs;          /* Number of messages currently in queue */
+volatile int seq_num;           /* Current queue node sequence number */
+
+GQueue *msg_q;     /* Global message queue items of type Msg */
 
 -> Implementation of Multicast Server ----------------------------------------*
 
+The listener thread implementation has a large amount of boilerplate network
+code which was based on resources from Beej's networking guide. 
 
--> Design Choices ------------------------------------------------------------*
- 
+The client implementations were very basic and followed closely with the 
+stream clients that are available on Beej's networking guide.
+
+One additional aspect that we had to implement was the graceful handling of
+client disconnections. It turns out that when a send() is innitiated on a 
+file descriptor where the client has disconnected, a SIGPIPE signal is thrown
+which by default will kill the process if unhandled. So what we did was add
+a sigaction() to ignore SIGPIPE signals, but when our send() failed, we would
+make sure to decrement current number of receive clients connected and then
+simply terminate the current handler thread as it is no longer needed.
+
+Initially our server implementation was all crammed into a single source
+file but it was becoming too large and complicated so we decided to refactor
+the project and put each handler thread implementation into its own source
+file. This required a bit of modifcation of our header file layout and changes
+to our Makefile but was well worth the effort because it was much easier to
+work on the server once everything was modularized.
+
+Our implementation was done in phases. For instance, the first phase was to
+implement the clients and test them separately. Then with the server, we 
+framed all the code structure in the header file, then did the initialization
+code. Then slowly started to add in complexity by setting up the listener 
+threads, and then the handler threads but early phases would just print
+stub messages. A bit of extra work was required to write test programs in
+order to learn the correct usage for the GQueue API.
+
+All along, we fixed compiler warnings and followed a strict quality control
+standard to write solid code.
 
 -> Testing -------------------------------------------------------------------*
 
+For our test plan, we tested each of the phases of the implementation before
+adding more complexity. For example we tested the clients separately. For the
+server, we would print debug messages from stub implementations to make sure
+things were working correctly. Little by little, we built up the program and
+tested things along the way to try and trigger bugs as early as possible and
+would brainstorm about vectors of failure that could arise.
+
+In terms of testing the final phase of the multicast server, we would simply
+connect many clients of both types and start sending messages, randomly
+disconnecting clients, re-connecting clients etc. to make sure that things
+kept working correctly and was free of deadlock or other synchronization 
+problems. 
+
+To our surprise, with the exception of the SIGPIPE issue that we fixed, our
+server worked correctly once we got to the final phase of the implementation.
 
 -> Limitations ---------------------------------------------------------------*
 
+After quite a lot of testing, we are confident that are program is free of
+any limitations as far as fulfulling the requirements of the assignment, within
+reasonable expectations.
+
+That being said, we hypothesize that their may be subtle race conditions that
+could put our server into an indeterminate state but they would be very hard
+to trigger under normal circumstances. Such a case would be for example if a 
+client were to disconnect in between the time that a message was added to the 
+queue but before the client had a chance to consume it. This is possible but 
+highly unlikely.
 
 -> References ----------------------------------------------------------------*
 
