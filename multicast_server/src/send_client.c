@@ -18,12 +18,7 @@
 #include <sys/socket.h>
 
 #include <arpa/inet.h>
-
-// REMOVE?
-#define PORT "35000" // the port client will be connecting to 
-
-// REMOVE?
-#define MAXDATASIZE 1024 // max number of bytes we can get at once 
+#define MAXDATASIZE 1024
 
 /* Function Prototypes *******************************************************/
 static void *
@@ -90,17 +85,6 @@ int main(int argc, char *argv[])
 	printf("send_client: connecting to %s\n", s);
 
 	freeaddrinfo(servinfo); // all done with this structure
-
-    /*
-	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-	    perror("recv");
-	    exit(1);
-	}
-
-	buf[numbytes] = '\0';
-
-	printf("client: received '%s'\n",buf);
-    */
 
     // send lines to server
     size_t nbytes = MAXDATASIZE-1;

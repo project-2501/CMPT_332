@@ -17,6 +17,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #include <pthread.h>
 #include <glib.h>
@@ -68,6 +69,8 @@ int main(int argc, char *argv[]) {
 static int 
 server_initialize() {
 	
+    signal(SIGPIPE, SIG_IGN);
+
 	/* Initialize the mutex lock */
 	if (pthread_mutex_init(&q_lock, NULL) != 0)
 		return -1;

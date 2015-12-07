@@ -19,11 +19,7 @@
 
 #include <arpa/inet.h>
 
-// REMOVE?
-#define PORT "35000" // the port client will be connecting to 
-
-// REMOVE?
-#define MAXDATASIZE 1024 // max number of bytes we can get at once 
+#define MAXDATASIZE 1024
 
 /* Function Prototypes *******************************************************/
 static void *get_in_addr(struct sockaddr *sa);
@@ -98,26 +94,8 @@ int main(int argc, char *argv[])
 	    buf[numbytes] = '\0';
         
         if (strcmp(buf, "") != 0)
-	        printf("client received: '%s'\n",buf);
+	        printf("%s",buf);
     }
-
-
-    /*
-    // send lines to server
-    size_t nbytes = MAXDATASIZE-1;
-    for(;;) {
-        // getline
-        if ((numbytes = getline(&buf, &nbytes, stdin)) == -1) {
-            perror("getline");
-            exit(1);
-        }
-        // send
-        if (send(sockfd, buf, numbytes, 0) == -1) {
-            perror("send");
-            exit(1);
-        }
-    }
-    */
 
 	close(sockfd);
 

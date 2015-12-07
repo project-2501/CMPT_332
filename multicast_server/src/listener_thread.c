@@ -76,6 +76,21 @@ void * listener_thread(void *prt) {
         break;
     }
 
+    // print server IP address
+    if ((long) prt == send_client_port) {
+        char hostname[1024];
+        struct addrinfo *hostinfo;
+        gethostname(hostname, sizeof hostname);
+        hints.ai_family = AF_INET;
+        if ((rv = getaddrinfo(hostname, NULL, &hints, &hostinfo)) != 0) {
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+            pthread_exit(NULL);
+        }
+        inet_ntop(hostinfo->ai_family,
+                get_in_addr((struct sockaddr *)hostinfo->ai_addr), s, sizeof s);
+        printf("Server IP: %s\n", s);
+    }
+
     freeaddrinfo(servinfo); /* All done with this structure */
 
 	/* Check for errors in socket initialization */
@@ -110,8 +125,9 @@ void * listener_thread(void *prt) {
 		if ((long) prt == send_client_port) {
 
 			/* Build the ClientConn structure */
-			cc.c_addr = strncpy(cc.c_addr, s, INET6_ADDRSTRLEN);
-			cc.c_port = ntohs(((struct sockaddr_in *) &their_addr)->sin_port);
+			//cc.c_addr = strncpy(cc.c_addr, s, INET6_ADDRSTRLEN);
+			cc.c_addr = s;
+            cc.c_port = ntohs(((struct sockaddr_in *) &their_addr)->sin_port);
 			cc.fd = new_fd;
 
 			if( pthread_create(&tid, NULL, send_client_thread, (void*) &cc) < 0) {
