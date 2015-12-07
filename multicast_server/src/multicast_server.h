@@ -12,7 +12,8 @@
 #define BACKLOG 10 /* Number of pending connections for listen queue */
 #define RECV_CLIENT_PORT 34000
 #define SEND_CLIENT_PORT 31000
-#define MAXDATASIZE 1024 // max number of bytes we can get at once
+#define MAXDATASIZE 1024 /* Max number of chars in one message */
+#define MAXMSGSIZE  1088 /* Adds extra room for message header (64 chars) */
 
 /* Static and local shared variables ----------------------------------------*/
 long send_client_port;
@@ -29,7 +30,7 @@ GQueue *msg_q;     /* Global message queue items of type Msg */
 
 /* Message type for placing into msg_q */
 typedef struct {
-	char  msg[MAXDATASIZE];  /* Stored message from send client */
+	char  *msg;  /* Stored message from send client */
 	int   seq;  /* Sequence number for this message */
     int   numC; /* Number of clients to process this message */
 } Msg;

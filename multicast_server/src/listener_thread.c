@@ -22,6 +22,7 @@
 
 #include "multicast_server.h"
 
+/* Local function prototypes ------------------------------------------------*/
 static void * get_in_addr(struct sockaddr *sa);
 
 void * listener_thread(void *prt) {
@@ -76,9 +77,9 @@ void * listener_thread(void *prt) {
         break;
     }
 
-    // print server IP address
+    /* Print server IP address */
     if ((long) prt == send_client_port) {
-        char hostname[1024];
+        char hostname[64];
         struct addrinfo *hostinfo;
         gethostname(hostname, sizeof hostname);
         hints.ai_family = AF_INET;
@@ -106,8 +107,6 @@ void * listener_thread(void *prt) {
     }
 
 	/* Ready to start main accept() loop on socket */
-	printf("Listening on port: %ld\n", (long) prt);
-
     while(1) {  
         sin_size = sizeof their_addr;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
@@ -125,19 +124,20 @@ void * listener_thread(void *prt) {
 		if ((long) prt == send_client_port) {
 
 			/* Build the ClientConn structure */
-			//cc.c_addr = strncpy(cc.c_addr, s, INET6_ADDRSTRLEN);
 			cc.c_addr = s;
             cc.c_port = ntohs(((struct sockaddr_in *) &their_addr)->sin_port);
 			cc.fd = new_fd;
 
-			if( pthread_create(&tid, NULL, send_client_thread, (void*) &cc) < 0) {
+			if( pthread_create(&tid, NULL, send_client_thread,
+                (void*) &cc) < 0) {
 				perror("could not create thread");
 			}	
 			pthread_detach(tid);
 		}
 		/* Launch handler for recv client */
 		else {
-			if( pthread_create(&tid, NULL, recv_client_thread, (void*) &new_fd) < 0) {
+			if( pthread_create(&tid, NULL, recv_client_thread,
+                (void*) &new_fd) < 0) {
 				perror("could not create thread");
 			}	
 			pthread_detach(tid);
@@ -147,7 +147,7 @@ void * listener_thread(void *prt) {
 	pthread_exit(NULL);
 }
 
-/* Description: Helper function to return sin_addr
+/* Description: Helper function to return sin_addr, either IPv4 or IPv6
  * Inputs: sa - sockaddr structure
  *
  * Return: none

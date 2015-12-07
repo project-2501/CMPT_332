@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <glib.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -20,28 +21,38 @@
 
 #include "multicast_server.h"
 
+/* Local function prototypes ------------------------------------------------*/
 static void free_Msg(gpointer msg);
 
 void *recv_client_thread(void *sock_fd) {
 
+    /* Cast received argument to integer socket fd */
 	int sock = *(int *) sock_fd;
-    int local_seq = 0;
-    char local_buf[MAXDATASIZE+64];
-	printf("Recv Client Handler: %d\n", sock);
-	// Register into system
 
-    // aquire msg queue lock
+    int local_seq = 0;
+    char local_buf[MAXMSGSIZE];
+	/* Print status message with socket value */
+    printf("Recv Client Handler: %d\n", sock);
+
+    /* Aquire message queue lock */
     if (pthread_mutex_lock(&q_lock) != 0) {
         perror("pthread_mutex_lock");
         pthread_exit(NULL);
     }
-    num_recv_clients++;
-    local_seq = seq_num + 1;
     
+    /* Increment number of receivers */
+    num_recv_clients++;
+    
+    /* Set local sequence number to one greater than current global sequence
+     * number so that only future messages are received by this client */
+    local_seq = seq_num + 1;
+   
+    /* Main loop for sending messages to receiver clients */
     for(;;) {
-       // Implement logic from paper design...                              TODO
+        /* Wait on condition if there are no messages to send or if sequence
+         * indicates that current head of message queue should not be printed */
         while (num_msgs == 0 || g_queue_is_empty(msg_q) ||
-                local_seq > ((Msg*)g_queue_peek_head(msg_q))->seq) {
+            local_seq > ((Msg*)g_queue_peek_head(msg_q))->seq) {
             
             if (pthread_cond_wait(&new_msg, &q_lock) != 0) {
                 perror("pthread_cond_wait");
@@ -50,27 +61,31 @@ void *recv_client_thread(void *sock_fd) {
         }
 
         if (((Msg*)g_queue_peek_head(msg_q))->seq == local_seq) {
-            // consume message
-            strncpy(local_buf, ((Msg*)g_queue_peek_head(msg_q))->msg, MAXDATASIZE+64);
+            /* Message should be sent */
+
+            /* Copy message from head of message queue */
+            strncpy(local_buf, ((Msg*)g_queue_peek_head(msg_q))->msg,
+                MAXMSGSIZE);
             (((Msg*)g_queue_peek_head(msg_q))->numC)--;
             local_seq++;
 
+            /* Remove message from head of queue if this is the last receiver
+             * that needs to get it */
             if(((Msg*)g_queue_peek_head(msg_q))->numC == 0) {
-                // remove head message from queue
                 free_Msg(g_queue_pop_head(msg_q));
             }
+
+            /* Release message queue lock while sending message */
             if (pthread_mutex_unlock(&q_lock) != 0) {
                 perror("pthread_mutex_unlock");
                 pthread_exit(NULL);
             }
 
-            // send message
+            /* Send message */
             if (send(sock, local_buf, sizeof local_buf, 0) == -1) {
                 perror("send");
-                printf("foobar\n"); // DEBUG statement
-                fflush(stdout);
-                // client has disconnected
-                // update number of clients and exit
+
+                /* Client has disconnected; update number of clients and exit */
                 if (pthread_mutex_lock(&q_lock) != 0) {
                     perror("pthread_mutex_lock");
                     pthread_exit(NULL);
@@ -80,10 +95,10 @@ void *recv_client_thread(void *sock_fd) {
                     perror("pthread_mutex_unlock");
                     pthread_exit(NULL);
                 }
-               
                 pthread_exit(NULL);
             }
            
+            /* Reaquire message queue lock before possibly waiting again */
             if (pthread_mutex_lock(&q_lock) != 0) {
                 perror("pthread_mutex_lock");
                 pthread_exit(NULL);

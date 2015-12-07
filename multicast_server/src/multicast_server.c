@@ -68,7 +68,8 @@ int main(int argc, char *argv[]) {
  */
 static int 
 server_initialize() {
-	
+
+    /* Ignore SIGPIPE, prevents server being killed if client disconnects */   
     signal(SIGPIPE, SIG_IGN);
 
 	/* Initialize the mutex lock */
@@ -91,6 +92,10 @@ server_initialize() {
 	send_client_port = SEND_CLIENT_PORT;
 	recv_client_port = RECV_CLIENT_PORT;
 
+    /* Print port numbers to server console */
+    printf("Send messages on port: %ld\nReceive messages on port: %ld\n", 
+        send_client_port, recv_client_port);
+
 	return 0;
 }
 
@@ -107,10 +112,12 @@ launch_listen_threads(void) {
 		return NULL;
 
 	/* Create the two listening threads */
-	if(pthread_create(&lt[0], NULL, listener_thread, (void *)send_client_port) != 0)
+	if(pthread_create(&lt[0], NULL, listener_thread,
+        (void *)send_client_port) != 0)
 		return NULL;
 
-	if(pthread_create(&lt[1], NULL, listener_thread, (void *)recv_client_port) != 0)
+	if(pthread_create(&lt[1], NULL, listener_thread,
+        (void *)recv_client_port) != 0)
 		return NULL;
 
 	return lt;
